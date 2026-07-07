@@ -2,7 +2,7 @@ package ru.practicum.request.repository;
 
 import ru.practicum.event.model.Event;
 import ru.practicum.request.model.Request;
-import ru.practicum.request.model.Status;
+import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.user.model.User;
 
 import java.util.List;
@@ -23,5 +23,5 @@ public interface RequestRepositoryCustom {
 
     boolean existsByRequesterAndEvent(User user, Event event);
 
-    List<Request> findRequestsByStatusAndEvent(Status status, Long eventId);
+    List<Request> findRequestsByStatusAndEvent(RequestStatus status, Long eventId);
 }

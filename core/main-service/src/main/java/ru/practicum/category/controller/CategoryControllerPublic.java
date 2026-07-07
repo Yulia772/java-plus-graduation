@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.category.service.CategoryService;
-import ru.practicum.category.dto.CategoryDto;
+import ru.practicum.interactionapi.dto.category.CategoryDto;
 
 import java.util.List;
 

@@ -3,7 +3,7 @@ package ru.practicum.comment.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import ru.practicum.event.dto.State;
+import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.event.model.Event;
 import ru.practicum.user.model.User;
 

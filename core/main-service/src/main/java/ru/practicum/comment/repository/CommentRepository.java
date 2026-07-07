@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import com.querydsl.core.types.Predicate;
 import org.springframework.data.repository.query.Param;
-import ru.practicum.comment.dto.CommentEventDto;
+import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.comment.model.Comment;
 
 import java.util.List;
@@ -27,7 +27,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, Queryds
     @EntityGraph(attributePaths = {"author", "event"})
     Page<Comment> findAll(Predicate predicate, Pageable pageable);
 
-    @Query("SELECT new ru.practicum.comment.dto.CommentEventDto(" +
+    @Query("SELECT new ru.practicum.interactionapi.dto.comment.CommentEventDto(" +
             "c.id, " +
             "c.event.id, " +
             "c.createdOn, " +
@@ -35,6 +35,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, Queryds
             "c.text) " +
             "FROM Comment c " +
             "WHERE c.event.id IN :eventIds " +
-            "AND c.state = ru.practicum.event.dto.State.PUBLISHED")
+            "AND c.state = ru.practicum.interactionapi.dto.event.State.PUBLISHED")
     List<CommentEventDto> findPublishedByEventIds(@Param("eventIds") List<Long> eventIds);
 }

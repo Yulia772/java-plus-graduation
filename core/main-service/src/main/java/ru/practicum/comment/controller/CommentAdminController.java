@@ -12,9 +12,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.comment.dto.*;
 import ru.practicum.comment.service.CommentService;
-import ru.practicum.event.dto.State;
+import ru.practicum.interactionapi.dto.comment.*;
+import ru.practicum.interactionapi.dto.event.State;
 
 import java.time.LocalDateTime;
 import java.util.List;

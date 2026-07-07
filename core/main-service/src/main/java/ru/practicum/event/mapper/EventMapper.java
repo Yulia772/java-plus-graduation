@@ -1,13 +1,13 @@
 //package ru.practicum.event.mapper;
 //
 //import org.mapstruct.*;
-//import ru.practicum.category.dto.CategoryDto;
+//import ru.practicum.interactionapi.dto.category.CategoryDto;
 //import ru.practicum.category.model.Category;
-//import ru.practicum.event.dto.EventFullDto;
-//import ru.practicum.event.dto.EventShortDto;
-//import ru.practicum.event.dto.NewEventDto;
+//import ru.practicum.interactionapi.dto.event.EventFullDto;
+//import ru.practicum.interactionapi.dto.event.EventShortDto;
+//import ru.practicum.interactionapi.dto.event.NewEventDto;
 //import ru.practicum.event.model.Event;
-//import ru.practicum.user.dto.UserShortDto;
+//import ru.practicum.interactionapi.dto.user.UserShortDto;
 //import ru.practicum.user.model.User;
 //
 //import java.time.LocalDateTime;
@@ -92,9 +92,11 @@ package ru.practicum.event.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import ru.practicum.category.mapper.CategoryMapper;
-import ru.practicum.comment.dto.CommentEventDto;
-import ru.practicum.event.dto.*;
+import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.event.model.Event;
+import ru.practicum.interactionapi.dto.event.EventFullDto;
+import ru.practicum.interactionapi.dto.event.EventShortDto;
+import ru.practicum.interactionapi.dto.event.NewEventDto;
 import ru.practicum.user.mapper.UserMapper;
 
 import java.util.List;

@@ -10,9 +10,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.event.dto.*;
 import ru.practicum.event.service.EventService;
 import ru.practicum.event.stats.StatsHitService;
+import ru.practicum.interactionapi.dto.event.EventFullDto;
+import ru.practicum.interactionapi.dto.event.EventShortDto;
+import ru.practicum.interactionapi.dto.event.EventSort;
+import ru.practicum.interactionapi.dto.event.PublicEventFilterParams;
 
 import java.time.LocalDateTime;
 import java.util.List;

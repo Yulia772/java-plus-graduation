@@ -10,23 +10,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.StatsClient;
 import ru.practicum.category.model.Category;
-import ru.practicum.comment.dto.CommentEventDto;
+import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.comment.repository.CommentRepository;
 import ru.practicum.common.EntityFinder;
 import ru.practicum.dto.request.ViewStatsParamDto;
 import ru.practicum.dto.response.ViewStatsDto;
-import ru.practicum.event.dto.*;
 import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.QEvent;
 import ru.practicum.event.repository.EventRepository;
-import ru.practicum.exception.BadRequestException;
-import ru.practicum.exception.ConflictException;
-import ru.practicum.exception.NotFoundException;
-import ru.practicum.request.dto.ParticipationRequestDto;
+import ru.practicum.interactionapi.exception.BadRequestException;
+import ru.practicum.interactionapi.exception.ConflictException;
+import ru.practicum.interactionapi.exception.NotFoundException;
+import ru.practicum.interactionapi.dto.event.*;
+import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
-import ru.practicum.request.model.Status;
+import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.request.repository.RequestRepository;
 
 import java.time.LocalDateTime;
@@ -364,7 +364,7 @@ public class EventServiceImpl implements EventService {
                 eventId, userId, req);
 
         // тут проверяем, что пришёл только CONFIRMED или REJECTED
-        if (req.getStatus() != Status.CONFIRMED && req.getStatus() != Status.REJECTED) {
+        if (req.getStatus() != RequestStatus.CONFIRMED && req.getStatus() != RequestStatus.REJECTED) {
             throw new ConflictException("Статус должен быть CONFIRMED или REJECTED");
         }
 
@@ -378,12 +378,12 @@ public class EventServiceImpl implements EventService {
 
         // проверка лимита участников перед подтверждением
         int limit = event.getPartLimit();
-        if (req.getStatus() == Status.CONFIRMED && limit != 0) {
+        if (req.getStatus() == RequestStatus.CONFIRMED && limit != 0) {
             long confirmedBefore = requestRepository.confirmedCount(eventId);
 
             //сколько заявок из этого списка мы действительно переведем в CONFIRMED (сейчас в PENDING)
             long toConfirm = requests.stream()
-                    .filter(r -> r.getStatus() == Status.PENDING)
+                    .filter(r -> r.getStatus() == RequestStatus.PENDING)
                     .count();
 
             //если уже подтвержденные + новые подтверждения превысят лимит - бросаем 409
@@ -396,15 +396,15 @@ public class EventServiceImpl implements EventService {
         List<ParticipationRequestDto> rejected = new ArrayList<>();
 
         for (Request r : requests) {
-            if (r.getStatus() != Status.PENDING) {
+            if (r.getStatus() != RequestStatus.PENDING) {
                 throw new ConflictException("Изменить можно только заявки в статусе PENDING");
             }
 
-            if (req.getStatus() == Status.CONFIRMED) {
-                r.setStatus(Status.CONFIRMED);
+            if (req.getStatus() == RequestStatus.CONFIRMED) {
+                r.setStatus(RequestStatus.CONFIRMED);
                 confirmed.add(requestMapper.toParticipantRequestDto(r));
             } else {
-                r.setStatus(Status.REJECTED);
+                r.setStatus(RequestStatus.REJECTED);
                 rejected.add(requestMapper.toParticipantRequestDto(r));
             }
         }

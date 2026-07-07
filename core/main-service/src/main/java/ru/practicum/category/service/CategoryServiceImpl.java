@@ -5,14 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.category.dto.CategoryDto;
-import ru.practicum.category.dto.NewCategoryDto;
+import ru.practicum.interactionapi.dto.category.CategoryDto;
+import ru.practicum.interactionapi.dto.category.NewCategoryDto;
 import ru.practicum.category.mapper.CategoryMapper;
 import ru.practicum.category.model.Category;
 import ru.practicum.category.repository.CategoryRepository;
 import ru.practicum.common.EntityFinder;
 import ru.practicum.event.repository.EventRepository;
-import ru.practicum.exception.ConflictException;
+import ru.practicum.interactionapi.exception.ConflictException;
 
 import java.util.List;
 

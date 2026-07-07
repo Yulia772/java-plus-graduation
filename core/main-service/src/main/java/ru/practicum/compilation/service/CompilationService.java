@@ -1,8 +1,8 @@
 package ru.practicum.compilation.service;
 
-import ru.practicum.compilation.dto.CompilationDto;
-import ru.practicum.compilation.dto.NewCompilationDto;
-import ru.practicum.compilation.dto.UpdateCompilationRequest;
+import ru.practicum.interactionapi.dto.compilation.CompilationDto;
+import ru.practicum.interactionapi.dto.compilation.NewCompilationDto;
+import ru.practicum.interactionapi.dto.compilation.UpdateCompilationRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;

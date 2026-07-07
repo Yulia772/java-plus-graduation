@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import ru.practicum.event.model.Event;
+import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
@@ -32,5 +33,5 @@ public class Request {
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private RequestStatus status;
 }

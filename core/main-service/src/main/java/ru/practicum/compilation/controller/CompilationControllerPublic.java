@@ -8,7 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.compilation.dto.CompilationDto;
+import ru.practicum.interactionapi.dto.compilation.CompilationDto;
 import ru.practicum.compilation.service.CompilationService;
 
 import java.util.List;

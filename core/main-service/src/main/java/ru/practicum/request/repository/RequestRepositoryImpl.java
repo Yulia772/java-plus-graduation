@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import ru.practicum.event.model.Event;
 import ru.practicum.request.model.QRequest;
 import ru.practicum.request.model.Request;
-import ru.practicum.request.model.Status;
+import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.user.model.User;
 
 import java.util.List;
@@ -31,7 +31,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
                 .select(request.count())
                 .from(request)
                 .where(request.event.id.eq(eventId)
-                        .and(request.status.eq(Status.CONFIRMED)))
+                        .and(request.status.eq(RequestStatus.CONFIRMED)))
                 .fetchFirst();
         return count != null ? count.intValue() : 0;
     }
@@ -42,7 +42,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
                 .select(request.event.id, request.count())
                 .from(request)
                 .where(request.event.id.in(eventIds)
-                        .and(request.status.eq(Status.CONFIRMED)))
+                        .and(request.status.eq(RequestStatus.CONFIRMED)))
                 .groupBy(request.event.id)
                 .fetch();
 
@@ -97,7 +97,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
     }
 
     @Override
-    public List<Request> findRequestsByStatusAndEvent(Status status, Long eventId) {
+    public List<Request> findRequestsByStatusAndEvent(RequestStatus status, Long eventId) {
         return queryFactory
                 .selectFrom(request)
                 .where(request.status.eq(status)

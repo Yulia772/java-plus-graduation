@@ -4,15 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.event.dto.State;
+import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.repository.EventRepository;
-import ru.practicum.exception.ConditionsNotMetException;
-import ru.practicum.exception.NotFoundException;
-import ru.practicum.request.dto.ParticipationRequestDto;
+import ru.practicum.interactionapi.exception.ConditionsNotMetException;
+import ru.practicum.interactionapi.exception.NotFoundException;
+import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
-import ru.practicum.request.model.Status;
+import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.request.repository.RequestRepository;
 import ru.practicum.user.model.User;
 import ru.practicum.user.repository.UserRepository;
@@ -87,7 +87,7 @@ public class RequestServiceImpl implements RequestService {
         //    Если requestModeration = false - модерация не требуется, подтверждаем сразу
         if (!event.isRequestModeration() || event.getPartLimit() == 0) {
             log.debug("Модерация не требуется, статус CONFIRMED: request для eventId={}", eventId);
-            request.setStatus(Status.CONFIRMED);
+            request.setStatus(RequestStatus.CONFIRMED);
         }
 
         Request saved = reqRepository.save(request);
@@ -136,7 +136,7 @@ public class RequestServiceImpl implements RequestService {
             );
         }
 
-        request.setStatus(Status.CANCELED);
+        request.setStatus(RequestStatus.CANCELED);
 
         Request saved = reqRepository.save(request);
 

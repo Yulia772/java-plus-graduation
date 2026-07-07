@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import ru.practicum.category.model.Category;
-import ru.practicum.event.dto.State;
+import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;

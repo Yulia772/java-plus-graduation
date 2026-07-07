@@ -1,8 +1,8 @@
 package ru.practicum.event.service;
 
 import org.springframework.data.domain.Pageable;
-import ru.practicum.event.dto.*;
-import ru.practicum.request.dto.ParticipationRequestDto;
+import ru.practicum.interactionapi.dto.event.*;
+import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
 
 import java.util.List;
 

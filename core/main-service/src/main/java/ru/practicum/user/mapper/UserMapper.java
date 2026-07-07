@@ -2,9 +2,9 @@ package ru.practicum.user.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.practicum.user.dto.NewUserRequest;
-import ru.practicum.user.dto.UserDto;
-import ru.practicum.user.dto.UserShortDto;
+import ru.practicum.interactionapi.dto.user.NewUserRequest;
+import ru.practicum.interactionapi.dto.user.UserDto;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 import ru.practicum.user.model.User;
 
 import java.util.List;

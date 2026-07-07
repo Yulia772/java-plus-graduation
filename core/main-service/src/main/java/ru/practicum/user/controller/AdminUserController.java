@@ -10,8 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.user.dto.NewUserRequest;
-import ru.practicum.user.dto.UserDto;
+import ru.practicum.interactionapi.dto.user.NewUserRequest;
+import ru.practicum.interactionapi.dto.user.UserDto;
 import ru.practicum.user.service.UserService;
 
 import java.util.List;
