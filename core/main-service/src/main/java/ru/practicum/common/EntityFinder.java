@@ -48,4 +48,6 @@ public class EntityFinder {
         return commentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Комментарий с id=" + id + " не найден"));
     }
+
+
 }

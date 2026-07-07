@@ -6,17 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.comment.client.CommentEventClient;
+import ru.practicum.comment.client.CommentUserClient;
 import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.comment.repository.CommentRepository;
-import ru.practicum.common.EntityFinder;
 import ru.practicum.interactionapi.dto.comment.*;
 import ru.practicum.interactionapi.dto.event.State;
-import ru.practicum.event.model.Event;
 import ru.practicum.interactionapi.exception.BadRequestException;
 import ru.practicum.interactionapi.exception.ConflictException;
 import ru.practicum.interactionapi.exception.NotFoundException;
-import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -33,27 +32,22 @@ import static ru.practicum.comment.model.QComment.comment;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
-    private final EntityFinder entityFinder;
     private final CommentMapper commentMapper;
+    private final CommentUserClient userClient;
+    private final CommentEventClient eventClient;
 
     @Override
     @Transactional
     public CommentShortDto createComment(Long userId, Long eventId, NewCommentDto dto) {
         log.info("CommentService: от пользователя с id {}, получен запрос на добавление комментария: {}.",
                 userId, dto);
-
-        User author = entityFinder.getUserOrThrow(userId);
-        Event event = entityFinder.getEventOrThrow(eventId);
-        LocalDateTime now = LocalDateTime.now();
-
-        if (event.getState() != State.PUBLISHED) {
-            throw new ConflictException("Нельзя написать комментарий на неопубликованное событие.");
-        }
+        userClient.checkUserExists(userId);
+        eventClient.checkEventExistsAndPublished(eventId);
 
         Comment comment = commentMapper.toComment(dto);
-        comment.setAuthor(author);
-        comment.setEvent(event);
-        comment.setCreatedOn(now);
+        comment.setAuthorId(userId);
+        comment.setEventId(eventId);
+        comment.setCreatedOn(LocalDateTime.now());
         comment.setState(State.PENDING);
 
         Comment saved = commentRepository.save(comment);
@@ -68,9 +62,9 @@ public class CommentServiceImpl implements CommentService {
         log.info("CommentService: от пользователя с id {}, получен запрос на обновление комментария c id {}.",
                 userId, commentId);
 
-        Comment saved = entityFinder.getCommentOrThrow(commentId);
+        Comment saved = getCommentOrThrow(commentId);
 
-        if (!saved.getAuthor().getId().equals(userId)) {
+        if (!saved.getAuthorId().equals(userId)) {
             throw new NotFoundException("Комментарий с id=" + commentId
                     + " от пользователя " + userId + " не найден, обновление невозможно.");
         }
@@ -101,9 +95,9 @@ public class CommentServiceImpl implements CommentService {
         log.info("CommentService: от пользователя с id {}, получен запрос на удаление комментария с id {}.",
                 userId, commentId);
 
-        Comment saved = entityFinder.getCommentOrThrow(commentId);
+        Comment saved = getCommentOrThrow(commentId);
 
-        if (!saved.getAuthor().getId().equals(userId)) {
+        if (!saved.getAuthorId().equals(userId)) {
             throw new NotFoundException("Комментарий с id=" + commentId +
                     " от пользователя " + userId + " не найден, удаление невозможно.");
         }
@@ -149,7 +143,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentFullDto getCommentById(Long commentId) {
         log.info("CommentService: получен запрос админа на получение комментария с id: {}.", commentId);
-        Comment saved = entityFinder.getCommentOrThrow(commentId);
+        Comment saved = getCommentOrThrow(commentId);
         CommentFullDto result = commentMapper.toCommentFullDto(saved);
         log.info("CommentService: комментарий найден: {}.", result);
         return result;
@@ -159,7 +153,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public void deleteByAdmin(Long commentId) {
         log.info("CommentService: получен запрос админа на удаление комментария с id {}.", commentId);
-        Comment saved = entityFinder.getCommentOrThrow(commentId);
+        Comment saved = getCommentOrThrow(commentId);
         commentRepository.delete(saved);
         log.info("CommentService: комментарий с id: {} удален админом.", commentId);
     }
@@ -180,11 +174,11 @@ public class CommentServiceImpl implements CommentService {
         }
 
         if (params.getAuthors() != null && !params.getAuthors().isEmpty()) {
-            predicate = predicate.and(comment.author.id.in(params.getAuthors()));
+            predicate = predicate.and(comment.authorId.in(params.getAuthors()));
         }
 
         if (params.getEvents() != null && !params.getEvents().isEmpty()) {
-            predicate = predicate.and(comment.event.id.in(params.getEvents()));
+            predicate = predicate.and(comment.eventId.in(params.getEvents()));
         }
 
         if (params.getStates() != null && !params.getStates().isEmpty()) {
@@ -230,5 +224,10 @@ public class CommentServiceImpl implements CommentService {
                             + invalidComments
             );
         }
+    }
+
+    private Comment getCommentOrThrow(Long id) {
+        return commentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Комментарий с id=" + id + " не найден"));
     }
 }
