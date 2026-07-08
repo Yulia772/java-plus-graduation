@@ -18,23 +18,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, Queryds
 
     @Query("SELECT DISTINCT c " +
             "FROM Comment c " +
-            "LEFT JOIN FETCH c.author a " +
-            "LEFT JOIN FETCH c.event e " +
             "WHERE c.id IN :commentIds " +
             "ORDER BY c.id")
     List<Comment> findAllByIdInWithAuthorAndEvent(Set<Long> commentIds);
 
-    @EntityGraph(attributePaths = {"author", "event"})
-    Page<Comment> findAll(Predicate predicate, Pageable pageable);
-
-    @Query("SELECT new ru.practicum.interactionapi.dto.comment.CommentEventDto(" +
-            "c.id, " +
-            "c.event.id, " +
-            "c.createdOn, " +
-            "c.author.name, " +
-            "c.text) " +
+    @Query("SELECT c " +
             "FROM Comment c " +
-            "WHERE c.event.id IN :eventIds " +
+            "WHERE c.eventId IN :eventIds " +
             "AND c.state = ru.practicum.interactionapi.dto.event.State.PUBLISHED")
     List<CommentEventDto> findPublishedByEventIds(@Param("eventIds") List<Long> eventIds);
 }

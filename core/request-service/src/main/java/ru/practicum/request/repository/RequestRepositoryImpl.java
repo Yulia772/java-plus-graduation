@@ -3,11 +3,9 @@ package ru.practicum.request.repository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.stereotype.Repository;
-import ru.practicum.event.model.Event;
 import ru.practicum.request.model.QRequest;
 import ru.practicum.request.model.Request;
 import ru.practicum.interactionapi.dto.request.RequestStatus;
-import ru.practicum.user.model.User;
 
 import java.util.List;
 import java.util.Map;
@@ -30,7 +28,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
         Long count = queryFactory
                 .select(request.count())
                 .from(request)
-                .where(request.event.id.eq(eventId)
+                .where(request.eventId.eq(eventId)
                         .and(request.status.eq(RequestStatus.CONFIRMED)))
                 .fetchFirst();
         return count != null ? count.intValue() : 0;
@@ -39,16 +37,16 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
     @Override
     public Map<Long, Long> confirmedCount(List<Long> eventIds) {
         List<com.querydsl.core.Tuple> results = queryFactory
-                .select(request.event.id, request.count())
+                .select(request.eventId, request.count())
                 .from(request)
-                .where(request.event.id.in(eventIds)
+                .where(request.eventId.in(eventIds)
                         .and(request.status.eq(RequestStatus.CONFIRMED)))
-                .groupBy(request.event.id)
+                .groupBy(request.eventId)
                 .fetch();
 
         return results.stream()
                 .collect(Collectors.toMap(
-                        tuple -> tuple.get(request.event.id),
+                        tuple -> tuple.get(request.eventId),
                         tuple -> tuple.get(request.count()),
                         (a, b) -> a + b
                 ));
@@ -58,7 +56,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
     public List<Request> findAllByEventId(Long eventId) {
         return queryFactory
                 .selectFrom(request)
-                .where(request.event.id.eq(eventId))
+                .where(request.eventId.eq(eventId))
                 .fetch();
     }
 
@@ -72,27 +70,19 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
     }
 
     @Override
-    public List<Request> findAllByEvent(Event event) {
+    public List<Request> findAllByRequesterId(Long requesterId) {
         return queryFactory
                 .selectFrom(request)
-                .where(request.event.eq(event))
+                .where(request.requesterId.eq(requesterId))
                 .fetch();
     }
 
     @Override
-    public List<Request> findAllByRequester(User requester) {
+    public boolean existsByRequesterIdAndEventId(Long userId, Long eventId) {
         return queryFactory
                 .selectFrom(request)
-                .where(request.requester.eq(requester))
-                .fetch();
-    }
-
-    @Override
-    public boolean existsByRequesterAndEvent(User user, Event event) {
-        return queryFactory
-                .selectFrom(request)
-                .where(request.requester.eq(user)
-                        .and(request.event.eq(event)))
+                .where(request.requesterId.eq(userId)
+                        .and(request.eventId.eq(eventId)))
                 .fetchFirst() != null;
     }
 
@@ -101,7 +91,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
         return queryFactory
                 .selectFrom(request)
                 .where(request.status.eq(status)
-                        .and(request.event.id.eq(eventId)))
+                        .and(request.eventId.eq(eventId)))
                 .fetch();
     }
 }

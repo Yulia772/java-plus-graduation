@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import ru.practicum.event.model.Event;
 import ru.practicum.interactionapi.dto.request.RequestStatus;
-import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
 
@@ -23,13 +21,11 @@ public class Request {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime created;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
-    private Event event;
+    @JoinColumn(name = "event_id", nullable = false)
+    private Long eventId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id")
-    private User requester;
+    @JoinColumn(name = "requester_id", nullable = false)
+    private Long requesterId;
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)

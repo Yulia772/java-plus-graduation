@@ -5,17 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.interactionapi.dto.event.State;
-import ru.practicum.event.model.Event;
-import ru.practicum.event.repository.EventRepository;
 import ru.practicum.interactionapi.exception.ConditionsNotMetException;
 import ru.practicum.interactionapi.exception.NotFoundException;
 import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
+import ru.practicum.request.client.RequestEventClient;
+import ru.practicum.request.client.RequestEventInfo;
+import ru.practicum.request.client.RequestUserClient;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
 import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.request.repository.RequestRepository;
-import ru.practicum.user.model.User;
-import ru.practicum.user.repository.UserRepository;
 
 import java.util.List;
 
@@ -29,8 +28,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class RequestServiceImpl implements RequestService {
     private final RequestRepository reqRepository;
-    private final UserRepository userRepository;
-    private final EventRepository eventRepository;
+    private final RequestUserClient userClient;
+    private final RequestEventClient eventClient;
     private final RequestMapper requestMapper;
 
     /**
@@ -51,41 +50,42 @@ public class RequestServiceImpl implements RequestService {
     public ParticipationRequestDto create(Long userId, Long eventId) {
         log.info("Создание запроса: userId={}, eventId={}", userId, eventId);
 
-        User user = findUserById(userId);
-        Event event = findEventById(eventId);
+        userClient.checkUserExists(userId);
+        RequestEventInfo event = eventClient.getEventInfo(eventId);
 
         //Проверка на повторный запрос (нельзя подать заявку дважды)
-        if (reqRepository.existsByRequesterAndEvent(user, event)) {
+        if (reqRepository.existsByRequesterIdAndEventId(userId, eventId)) {
             log.warn("Запрос уже существует: userId={}, eventId={}", userId, eventId);
             throw new ConditionsNotMetException("Запрос уже существует");
         }
 
         // Проверка, что инициатор не подает заявку на свое событие
-        if (event.getInitiator().equals(user)) {
+        if (event.initiatorId().equals(userId)) {
             log.warn("Инициатор не может создать запрос на свое событие: userId={}, eventId={}", userId, eventId);
             throw new ConditionsNotMetException("Инициатор не может создать запрос на свое событие");
         }
 
         // Проверка, что событие опубликовано (нельзя подать заявку на черновик)
-        if (!event.getState().equals(State.PUBLISHED)) {
-            log.warn("Событие не опубликовано: eventId={}, state={}", eventId, event.getState());
+        if (!event.state().equals(State.PUBLISHED)) {
+            log.warn("Событие не опубликовано: eventId={}, state={}", eventId, event.state());
             throw new ConditionsNotMetException("Событие должно быть опубликовано");
         }
 
         // Проверка лимита участников
         int confirmedCount = getConfirmedCount(eventId);
-        if (event.getPartLimit() > 0 && event.getPartLimit() <= confirmedCount) {
+
+        if (event.partLimit() > 0 && event.partLimit() <= confirmedCount) {
             log.debug("Достигнут лимит участников: eventId={}, limit={}, confirmed={}",
-                    eventId, event.getPartLimit(), confirmedCount);
+                    eventId, event.partLimit(), confirmedCount);
             throw new ConditionsNotMetException("Достигнут лимит участников");
         }
 
-        Request request = requestMapper.toRequest(user, event);
+        Request request = requestMapper.toRequest(userId, eventId);
 
         //  Автоматическое подтверждение если не требуется модерация или лимит = 0
         //    Если лимит = 0 - безлимитное участие, подтверждаем сразу
         //    Если requestModeration = false - модерация не требуется, подтверждаем сразу
-        if (!event.isRequestModeration() || event.getPartLimit() == 0) {
+        if (!event.requestModeration() || event.partLimit() == 0) {
             log.debug("Модерация не требуется, статус CONFIRMED: request для eventId={}", eventId);
             request.setStatus(RequestStatus.CONFIRMED);
         }
@@ -103,9 +103,9 @@ public class RequestServiceImpl implements RequestService {
     public List<ParticipationRequestDto> findAll(Long userId) {
         log.info("Получение всех запросов пользователя: userId={}", userId);
 
-        User user = findUserById(userId);
+        userClient.checkUserExists(userId);
 
-        List<Request> requests = reqRepository.findAllByRequester(user);
+        List<Request> requests = reqRepository.findAllByRequesterId(userId);
 
         log.info("Найдено запросов: {} для userId={}", requests.size(), userId);
 
@@ -124,12 +124,12 @@ public class RequestServiceImpl implements RequestService {
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
         log.info("Отмена запроса: userId={}, requestId={}", userId, requestId);
 
-        User requester = findUserById(userId);
+        userClient.checkUserExists(userId);
         Request request = findRequestById(requestId);
 
         //Проверяем, что пользователь действительно создатель запроса
         //    (нельзя отменить чужой запрос)
-        if (!request.getRequester().equals(requester)) {
+        if (!request.getRequesterId().equals(userId)) {
             log.warn("Пользователь не является создателем запроса: userId={}, requestId={}", userId, requestId);
             throw new ConditionsNotMetException(
                     String.format("Пользователь %d не является создателем запроса %d", userId, requestId)
@@ -162,23 +162,4 @@ public class RequestServiceImpl implements RequestService {
         return reqRepository.confirmedCount(eventId);
     }
 
-    /**
-     * Поиск пользователя по ID с проверкой существования
-     */
-    private User findUserById(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() -> {
-            log.warn("Пользователь не найден: id={}", userId);
-            return new NotFoundException("Пользователь с id=" + userId + " не найден");
-        });
-    }
-
-    /**
-     * Поиск события по ID с проверкой существования
-     */
-    private Event findEventById(Long id) {
-        return eventRepository.findById(id).orElseThrow(() -> {
-            log.warn("Событие не найдено: id={}", id);
-            return new NotFoundException("Событие с id=" + id + " не найдено");
-        });
-    }
 }
