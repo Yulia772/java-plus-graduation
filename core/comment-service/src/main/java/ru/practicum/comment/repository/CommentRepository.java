@@ -1,14 +1,9 @@
 package ru.practicum.comment.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
-import com.querydsl.core.types.Predicate;
 import org.springframework.data.repository.query.Param;
-import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.comment.model.Comment;
 
 import java.util.List;
@@ -26,5 +21,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, Queryds
             "FROM Comment c " +
             "WHERE c.eventId IN :eventIds " +
             "AND c.state = ru.practicum.interactionapi.dto.event.State.PUBLISHED")
-    List<CommentEventDto> findPublishedByEventIds(@Param("eventIds") List<Long> eventIds);
+    List<Comment> findPublishedByEventIds(@Param("eventIds") List<Long> eventIds);
 }

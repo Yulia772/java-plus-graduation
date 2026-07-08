@@ -48,6 +48,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         // - limit — сколько записей вернуть
         // - fetch() — выполняем запрос и получаем результат
         List<User> content = query
+                .orderBy(user.id.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();

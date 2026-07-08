@@ -3,7 +3,9 @@ package ru.practicum.user.service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.interactionapi.exception.ConflictException;
@@ -45,11 +47,16 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> findUsers(Long[] ids, Pageable pageable) {
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.ASC, "id")
+        );
         List<User> found;
         if (ids == null) {
-            found = userRepository.findAll(pageable).getContent();
+            found = userRepository.findAll(sortedPageable).getContent();
         } else {
-            found = userRepository.findByIdInWithPagination(Arrays.asList(ids), pageable).getContent();
+            found = userRepository.findByIdInWithPagination(Arrays.asList(ids), sortedPageable).getContent();
         }
         return userMapper.toUserDtoList(found);
     }

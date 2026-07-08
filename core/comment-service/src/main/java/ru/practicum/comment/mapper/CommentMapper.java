@@ -2,6 +2,7 @@ package ru.practicum.comment.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.interactionapi.dto.comment.CommentFullDto;
 import ru.practicum.interactionapi.dto.comment.CommentShortDto;
 import ru.practicum.interactionapi.dto.comment.NewCommentDto;
@@ -22,4 +23,8 @@ public interface CommentMapper {
     @Mapping(target = "author", ignore = true)
     @Mapping(target = "event", ignore = true)
     CommentFullDto toCommentFullDto(Comment comment);
+
+    @Mapping(target = "eventId", source = "eventId")
+    @Mapping(target = "authorName", ignore = true)
+    CommentEventDto toCommentEventDto(Comment comment);
 }

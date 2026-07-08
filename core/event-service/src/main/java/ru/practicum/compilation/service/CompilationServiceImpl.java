@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.common.EntityFinder;
 import ru.practicum.interactionapi.dto.compilation.CompilationDto;
 import ru.practicum.interactionapi.dto.compilation.NewCompilationDto;
 import ru.practicum.interactionapi.dto.compilation.UpdateCompilationRequest;
@@ -29,7 +28,6 @@ public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
-    private final EntityFinder entityFinder;
 
     @Override
     @Transactional
@@ -47,7 +45,7 @@ public class CompilationServiceImpl implements CompilationService {
     @Transactional
     public void delete(Long compId) {
         log.info("CompilationService: получен запрос на удаление компиляции с id: {}.", compId);
-        Compilation compilation = entityFinder.getCompilationOrThrow(compId);
+        Compilation compilation = getCompilationOrThrow(compId);
         compilationRepository.delete(compilation);
         log.info("CompilationService: компиляция с id: {} удалена.", compId);
     }
@@ -56,7 +54,7 @@ public class CompilationServiceImpl implements CompilationService {
     @Transactional
     public CompilationDto update(Long compId, UpdateCompilationRequest dto) {
         log.info("CompilationService: получен запрос на обновление компиляции с id {}.", compId);
-        Compilation saved = entityFinder.getCompilationOrThrow(compId);
+        Compilation saved = getCompilationOrThrow(compId);
         updateFields(saved, dto);
         CompilationDto result = compilationMapper.toCompilationDto(saved);
         log.info("CompilationService: категория обновлена: {}", result);
@@ -81,7 +79,7 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     public CompilationDto getById(Long compId) {
         log.info("CompilationService: получен запрос на получение компиляции с id: {}.", compId);
-        Compilation saved = entityFinder.getCompilationOrThrow(compId);
+        Compilation saved = getCompilationOrThrow(compId);
         CompilationDto result = compilationMapper.toCompilationDto(saved);
         log.info("CompilationService: категория выдана: {}", result);
         return result;
@@ -112,5 +110,10 @@ public class CompilationServiceImpl implements CompilationService {
         if (dto.getTitle() != null) {
             compilation.setTitle(dto.getTitle());
         }
+    }
+
+    private Compilation getCompilationOrThrow(Long id) {
+        return compilationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Компиляция с id=" + id + " не найдена"));
     }
 }

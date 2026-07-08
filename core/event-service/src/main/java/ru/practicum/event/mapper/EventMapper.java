@@ -2,11 +2,11 @@
 //
 //import org.mapstruct.*;
 //import ru.practicum.interactionapi.dto.category.CategoryDto;
-//import ru.practicum.category.model.Category;
+//import ru.practicum.model.category.Category;
 //import ru.practicum.interactionapi.dto.event.EventFullDto;
 //import ru.practicum.interactionapi.dto.event.EventShortDto;
 //import ru.practicum.interactionapi.dto.event.NewEventDto;
-//import ru.practicum.event.model.Event;
+//import ru.practicum.model.event.Event;
 //import ru.practicum.interactionapi.dto.user.UserShortDto;
 //import ru.practicum.user.model.User;
 //

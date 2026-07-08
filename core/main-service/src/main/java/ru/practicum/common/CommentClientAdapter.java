@@ -7,7 +7,6 @@ import ru.practicum.comment.client.CommentUserClient;
 import ru.practicum.event.model.Event;
 import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.interactionapi.exception.ConflictException;
-import ru.practicum.request.client.RequestEventInfo;
 
 @Component
 @RequiredArgsConstructor

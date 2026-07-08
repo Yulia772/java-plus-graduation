@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.StatsClient;
 import ru.practicum.category.model.Category;
+import ru.practicum.category.repository.CategoryRepository;
+import ru.practicum.event.client.EventCommentClient;
+import ru.practicum.event.client.EventRequestClient;
+import ru.practicum.event.client.EventUserClient;
 import ru.practicum.interactionapi.dto.comment.CommentEventDto;
-import ru.practicum.comment.repository.CommentRepository;
-import ru.practicum.common.EntityFinder;
 import ru.practicum.dto.request.ViewStatsParamDto;
 import ru.practicum.dto.response.ViewStatsDto;
 import ru.practicum.event.mapper.EventMapper;
@@ -24,10 +26,6 @@ import ru.practicum.interactionapi.exception.ConflictException;
 import ru.practicum.interactionapi.exception.NotFoundException;
 import ru.practicum.interactionapi.dto.event.*;
 import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
-import ru.practicum.request.mapper.RequestMapper;
-import ru.practicum.request.model.Request;
-import ru.practicum.interactionapi.dto.request.RequestStatus;
-import ru.practicum.request.repository.RequestRepository;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,12 +40,13 @@ import static ru.practicum.event.model.QEvent.event;
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
-    private final RequestRepository requestRepository;
-    private final RequestMapper requestMapper;
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
-    private final EntityFinder entityFinder;
-    private final CommentRepository commentRepository;
+    private final CategoryRepository categoryRepository;
+
+    private final EventRequestClient requestClient;
+    private final EventCommentClient commentClient;
+    private final EventUserClient userClient;
 
     // PUBLIC
 
@@ -100,17 +99,17 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getPublicEvent(Long eventId) {
         log.info("EventService: получение публичного события id={}", eventId);
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         if (event.getState() != State.PUBLISHED) {
             // по ТЗ: для не опубликованного события тоже 404
             throw new NotFoundException("Событие с id=" + eventId + " не найдено");
         }
 
-        long confirmed = requestRepository.confirmedCount(event.getId());
+        long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentRepository.findPublishedByEventIds(List.of(event.getId()));
+                commentClient.findPublishedByEventId(event.getId());
 
         return eventMapper.toEventFullDto(event, (int) confirmed, views, comments);
     }
@@ -146,7 +145,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest request) {
         log.info("EventService: админ обновляет event id={}, body={}", eventId, request);
 
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         // обновляем только ненулевые поля
         if (request.getAnnotation() != null) {
@@ -159,7 +158,7 @@ public class EventServiceImpl implements EventService {
             event.setTitle(request.getTitle());
         }
         if (request.getCategory() != null) {
-            Category category = entityFinder.getCategoryOrThrow(request.getCategory().longValue());
+            Category category = getCategoryOrThrow(request.getCategory().longValue());
             event.setCategory(category);
         }
         if (request.getLocation() != null) {
@@ -201,7 +200,7 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        long confirmed = requestRepository.confirmedCount(event.getId());
+        long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         return eventMapper.toEventFullDto(event, (int) confirmed, views, List.of());
     }
@@ -213,8 +212,8 @@ public class EventServiceImpl implements EventService {
     public EventFullDto createEvent(Long userId, NewEventDto newEventDto) {
         log.info("EventService: user {} создает event {}", userId, newEventDto);
 
-        var initiator = entityFinder.getUserOrThrow(userId);
-        var category = entityFinder.getCategoryOrThrow(newEventDto.getCategory().longValue());
+        var initiator = userClient.getUserOrThrow(userId);
+        var category = getCategoryOrThrow(newEventDto.getCategory().longValue());
 
         //проверка даты события при создании
         LocalDateTime eventDate = newEventDto.getEventDate();
@@ -260,16 +259,16 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getUserEvent(Long userId, Long eventId) {
         log.info("EventService: получаем event {} для user {}", eventId, userId);
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
-        long confirmed = requestRepository.confirmedCount(event.getId());
+        long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentRepository.findPublishedByEventIds(List.of(event.getId()));
+                commentClient.findPublishedByEventId(event.getId());
         return eventMapper.toEventFullDto(event, (int) confirmed, views, comments);
     }
 
@@ -278,7 +277,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto updateEventByUser(Long userId, Long eventId, UpdateEventUserRequest request) {
         log.info("EventService: user {} обновляет event {}, body={}", userId, eventId, request);
 
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
@@ -298,7 +297,7 @@ public class EventServiceImpl implements EventService {
             event.setTitle(request.getTitle());
         }
         if (request.getCategory() != null) {
-            Category category = entityFinder.getCategoryOrThrow(request.getCategory().longValue());
+            Category category = getCategoryOrThrow(request.getCategory().longValue());
             event.setCategory(category);
         }
         if (request.getLocation() != null) {
@@ -332,7 +331,7 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        long confirmed = requestRepository.confirmedCount(event.getId());
+        long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         return eventMapper.toEventFullDto(event, (int) confirmed, views, List.of());
     }
@@ -341,18 +340,13 @@ public class EventServiceImpl implements EventService {
     public List<ParticipationRequestDto> getEventRequests(Long userId, Long eventId) {
         log.info("EventService: получены запросы на event {} user {}", eventId, userId);
 
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
-        List<Request> requests = requestRepository.findAllByEventId(eventId);
-        List<ParticipationRequestDto> result = new ArrayList<>();
-        for (Request r : requests) {
-            result.add(requestMapper.toParticipantRequestDto(r));
-        }
-        return result;
+        return requestClient.findAllByEventId(eventId);
     }
 
     @Override
@@ -363,56 +357,13 @@ public class EventServiceImpl implements EventService {
         log.info("EventService: обновить статус запросов для event {} of user {}, body={}",
                 eventId, userId, req);
 
-        // тут проверяем, что пришёл только CONFIRMED или REJECTED
-        if (req.getStatus() != RequestStatus.CONFIRMED && req.getStatus() != RequestStatus.REJECTED) {
-            throw new ConflictException("Статус должен быть CONFIRMED или REJECTED");
-        }
-
-        Event event = entityFinder.getEventOrThrow(eventId);
+        Event event = getEventOrThrow(eventId);
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
-        List<Request> requests = requestRepository.findRequestsByIds(req.getRequestIds());
-
-        // проверка лимита участников перед подтверждением
-        int limit = event.getPartLimit();
-        if (req.getStatus() == RequestStatus.CONFIRMED && limit != 0) {
-            long confirmedBefore = requestRepository.confirmedCount(eventId);
-
-            //сколько заявок из этого списка мы действительно переведем в CONFIRMED (сейчас в PENDING)
-            long toConfirm = requests.stream()
-                    .filter(r -> r.getStatus() == RequestStatus.PENDING)
-                    .count();
-
-            //если уже подтвержденные + новые подтверждения превысят лимит - бросаем 409
-            if (confirmedBefore + toConfirm > limit) {
-                throw new ConflictException("Превышен лимит участников события");
-            }
-        }
-
-        List<ParticipationRequestDto> confirmed = new ArrayList<>();
-        List<ParticipationRequestDto> rejected = new ArrayList<>();
-
-        for (Request r : requests) {
-            if (r.getStatus() != RequestStatus.PENDING) {
-                throw new ConflictException("Изменить можно только заявки в статусе PENDING");
-            }
-
-            if (req.getStatus() == RequestStatus.CONFIRMED) {
-                r.setStatus(RequestStatus.CONFIRMED);
-                confirmed.add(requestMapper.toParticipantRequestDto(r));
-            } else {
-                r.setStatus(RequestStatus.REJECTED);
-                rejected.add(requestMapper.toParticipantRequestDto(r));
-            }
-        }
-
-        return EventRequestStatusUpdateResult.builder()
-                .confirmedRequests(confirmed)
-                .rejectedRequests(rejected)
-                .build();
+        return requestClient.updateRequestsStatus(eventId, event.getPartLimit(), req);
     }
 
     // HELPERS: предикаты
@@ -567,7 +518,7 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return requestRepository.confirmedCount(ids);
+        return requestClient.confirmedCount(ids);
     }
 
     private Map<Long, List<CommentEventDto>> fetchComments(List<Event> events) {
@@ -580,8 +531,16 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        List<CommentEventDto> comments = commentRepository.findPublishedByEventIds(ids);
+        return commentClient.findPublishedByEventIds(ids);
+    }
 
-        return comments.stream().collect(Collectors.groupingBy(CommentEventDto::getEventId));
+    private Event getEventOrThrow(Long id) {
+        return eventRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Событие с id=" + id + " не найдено"));
+    }
+
+    private Category getCategoryOrThrow(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Категория с id=" + id + " не найдена"));
     }
 }
