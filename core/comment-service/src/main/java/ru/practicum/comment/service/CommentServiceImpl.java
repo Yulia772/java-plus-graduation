@@ -13,14 +13,14 @@ import ru.practicum.interactionapi.client.EventClient;
 import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.comment.*;
 import ru.practicum.interactionapi.dto.event.State;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 import ru.practicum.interactionapi.exception.BadRequestException;
 import ru.practicum.interactionapi.exception.ConflictException;
 import ru.practicum.interactionapi.exception.NotFoundException;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ru.practicum.comment.model.QComment.comment;
@@ -111,7 +111,7 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentShortDto> approveComments(CommentStatusUpdateRequest request) {
         log.info("CommentService: получен запрос админа на изменение статуса комментариев с id: {}.",
                 request.getCommentIds());
-        List<Comment> comments = commentRepository.findAllByIdInWithAuthorAndEvent(request.getCommentIds());
+        List<Comment> comments = commentRepository.findAllByIdIn(request.getCommentIds());
 
         validateCommentsExist(comments, request.getCommentIds());
         validateCommentState(comments);
@@ -135,7 +135,7 @@ public class CommentServiceImpl implements CommentService {
         log.info("CommentService: получен запрос админа на получение комментариев.");
         BooleanExpression predicate = buildPredicate(params);
         List<Comment> comments = commentRepository.findAll(predicate, pageable).getContent();
-        List<CommentFullDto> result = comments.stream().map(commentMapper::toCommentFullDto).toList();
+        List<CommentFullDto> result = toCommentFullDtos(comments);
         log.info("CommentService: Выдан список из {} комментариев.", result.size());
         return result;
     }
@@ -144,7 +144,8 @@ public class CommentServiceImpl implements CommentService {
     public CommentFullDto getCommentById(Long commentId) {
         log.info("CommentService: получен запрос админа на получение комментария с id: {}.", commentId);
         Comment saved = getCommentOrThrow(commentId);
-        CommentFullDto result = commentMapper.toCommentFullDto(saved);
+        UserShortDto author = userClient.getUserShortDto(saved.getAuthorId());
+        CommentFullDto result = commentMapper.toCommentFullDto(saved, author);
         log.info("CommentService: комментарий найден: {}.", result);
         return result;
     }
@@ -229,5 +230,31 @@ public class CommentServiceImpl implements CommentService {
     private Comment getCommentOrThrow(Long id) {
         return commentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Комментарий с id=" + id + " не найден"));
+    }
+
+    private List<CommentFullDto> toCommentFullDtos(List<Comment> comments) {
+        if (comments == null || comments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> authorIds = comments.stream()
+                .map(Comment::getAuthorId)
+                .distinct()
+                .toList();
+
+        Map<Long, UserShortDto> authors = userClient.getUserShortDtos(authorIds).stream()
+                .collect(Collectors.toMap(
+                        UserShortDto::getId,
+                        Function.identity(),
+                        (first, second) -> first
+                ));
+
+        List<CommentFullDto> result = new ArrayList<>();
+        for (Comment comment : comments) {
+            UserShortDto author = authors.get(comment.getAuthorId());
+            CommentFullDto dto = commentMapper.toCommentFullDto(comment, author);
+            result.add(dto);
+        }
+        return result;
     }
 }

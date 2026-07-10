@@ -15,7 +15,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, Queryds
             "FROM Comment c " +
             "WHERE c.id IN :commentIds " +
             "ORDER BY c.id")
-    List<Comment> findAllByIdInWithAuthorAndEvent(Set<Long> commentIds);
+    List<Comment> findAllByIdIn(@Param("commentIds") Set<Long> commentIds);
 
     @Query("SELECT c " +
             "FROM Comment c " +

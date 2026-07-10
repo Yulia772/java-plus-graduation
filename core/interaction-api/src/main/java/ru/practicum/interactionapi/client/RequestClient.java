@@ -17,13 +17,13 @@ import java.util.List;
 )
 public interface RequestClient {
 
-    @GetMapping("/internal/request/events/{eventId}")
+    @GetMapping("/internal/requests/events/{eventId}")
     List<ParticipationRequestDto> findAllByEventId(@PathVariable("eventId") Long eventId);
 
     @GetMapping("/internal/requests/events/{eventId}/confirmed-count")
     Long confirmedCount(@PathVariable("eventId") Long eventId);
 
-    @GetMapping("/internal/requests/confirmed-count")
+    @GetMapping("/internal/requests/confirmed-counts")
     List<RequestCountDto> confirmedCounts(@RequestParam("eventIds") List<Long> eventIds);
 
     @PostMapping("/internal/requests/events/{eventId}/status")

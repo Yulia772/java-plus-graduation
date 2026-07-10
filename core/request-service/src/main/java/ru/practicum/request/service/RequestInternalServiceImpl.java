@@ -9,6 +9,7 @@ import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
 import ru.practicum.interactionapi.dto.request.RequestCountDto;
 import ru.practicum.interactionapi.dto.request.RequestStatus;
 import ru.practicum.interactionapi.exception.ConflictException;
+import ru.practicum.interactionapi.exception.NotFoundException;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
 import ru.practicum.request.repository.RequestRepository;
@@ -59,6 +60,14 @@ public class RequestInternalServiceImpl implements RequestInternalService {
         }
 
         List<Request> requests = requestRepository.findRequestsByIds(req.getRequestIds());
+        if (requests.size() != req.getRequestIds().size()) {
+            throw new NotFoundException("В списке есть несуществующие заявки");
+        }
+        boolean hasAnotherRequests = requests.stream()
+                .anyMatch(r -> !r.getEventId().equals(eventId));
+        if (hasAnotherRequests) {
+            throw new ConflictException("Все заявки должны относиться к событию id=" + eventId);
+        }
 
         if (req.getStatus() == RequestStatus.CONFIRMED && participantLimit != 0) {
             long confirmedBefore = requestRepository.confirmedCount(eventId);

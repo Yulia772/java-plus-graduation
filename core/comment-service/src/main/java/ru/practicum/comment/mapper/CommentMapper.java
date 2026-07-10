@@ -7,6 +7,7 @@ import ru.practicum.interactionapi.dto.comment.CommentFullDto;
 import ru.practicum.interactionapi.dto.comment.CommentShortDto;
 import ru.practicum.interactionapi.dto.comment.NewCommentDto;
 import ru.practicum.comment.model.Comment;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
@@ -20,11 +21,13 @@ public interface CommentMapper {
 
     CommentShortDto toCommentShortDto(Comment comment);
 
-    @Mapping(target = "author", ignore = true)
+    @Mapping(target = "id", source = "comment.id")
+    @Mapping(target = "author", source = "author")
     @Mapping(target = "event", ignore = true)
-    CommentFullDto toCommentFullDto(Comment comment);
+    CommentFullDto toCommentFullDto(Comment comment, UserShortDto author);
 
-    @Mapping(target = "eventId", source = "eventId")
-    @Mapping(target = "authorName", ignore = true)
-    CommentEventDto toCommentEventDto(Comment comment);
+    @Mapping(target = "id", source = "comment.id")
+    @Mapping(target = "eventId", source = "comment.eventId")
+    @Mapping(target = "authorName", source = "authorName")
+    CommentEventDto toCommentEventDto(Comment comment, String authorName);
 }

@@ -6,9 +6,15 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.comment.repository.CommentRepository;
+import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.comment.CommentEventDto;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +22,7 @@ import java.util.List;
 public class CommentInternalServiceImpl implements CommentInternalService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
+    private final UserClient userClient;
 
     @Override
     public List<CommentEventDto> findPublishedByEventIds(List<Long> eventIds) {
@@ -25,8 +32,32 @@ public class CommentInternalServiceImpl implements CommentInternalService {
 
         List<Comment> comments = commentRepository.findPublishedByEventIds(eventIds);
 
-        return comments.stream()
-                .map(commentMapper::toCommentEventDto)
+        if (comments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> authorIds = comments.stream()
+                .map(Comment::getAuthorId)
+                .distinct()
                 .toList();
+
+        Map<Long, UserShortDto> authors = userClient.getUserShortDtos(authorIds).stream()
+                .collect(Collectors.toMap(
+                        UserShortDto::getId,
+                        Function.identity(),
+                        (first, second) -> first
+                ));
+        List<CommentEventDto> result = new ArrayList<>();
+
+        for (Comment comment : comments) {
+            UserShortDto author = authors.get(comment.getAuthorId());
+
+            String authorName = null;
+            if (author != null) {
+                authorName = author.getName();
+            }
+            result.add(commentMapper.toCommentEventDto(comment, authorName));
+        }
+        return result;
     }
 }
