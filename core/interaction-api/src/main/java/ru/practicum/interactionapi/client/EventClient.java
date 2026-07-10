@@ -12,7 +12,7 @@ import ru.practicum.interactionapi.dto.request.RequestEventInfo;
         configuration = CommonFeignConfig.class
 )
 public interface EventClient {
-    @GetMapping("internal/events/{eventId}/published")
+    @GetMapping("/internal/events/{eventId}/published")
     void checkEventExistsAndPublished(@PathVariable Long eventId);
 
     @GetMapping("/internal/events/{eventId}/request-info")
