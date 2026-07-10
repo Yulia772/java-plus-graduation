@@ -8,10 +8,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.StatsClient;
 import ru.practicum.category.model.Category;
 import ru.practicum.category.repository.CategoryRepository;
-import ru.practicum.interactionapi.client.CommentClient;
+import ru.practicum.event.client.EventDependencyFacade;
 import ru.practicum.interactionapi.client.RequestClient;
 import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.comment.CommentEventDto;
@@ -43,12 +42,11 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
-    private final StatsClient statsClient;
     private final CategoryRepository categoryRepository;
 
     private final RequestClient requestClient;
-    private final CommentClient commentClient;
     private final UserClient userClient;
+    private final EventDependencyFacade eventDependencyFacade;
 
     // PUBLIC
 
@@ -110,11 +108,11 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Событие с id=" + eventId + " не найдено");
         }
 
-        long confirmed = requestClient.confirmedCount(event.getId());
+        long confirmed = eventDependencyFacade.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentClient.findPublishedByEventIds(List.of(event.getId()));
-        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+                eventDependencyFacade.publishedComments(List.of(event.getId()));
+        UserShortDto initiator = eventDependencyFacade.user(event.getInitiatorId());
 
         return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, comments);
     }
@@ -207,9 +205,9 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        long confirmed = requestClient.confirmedCount(event.getId());
+        long confirmed = eventDependencyFacade.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
-        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+        UserShortDto initiator = eventDependencyFacade.user(event.getInitiatorId());
         return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, List.of());
     }
 
@@ -275,11 +273,11 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
-        long confirmed = requestClient.confirmedCount(event.getId());
+        long confirmed = eventDependencyFacade.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentClient.findPublishedByEventIds(List.of(event.getId()));
-        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+                eventDependencyFacade.publishedComments(List.of(event.getId()));
+        UserShortDto initiator = eventDependencyFacade.user(event.getInitiatorId());
         return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, comments);
     }
 
@@ -342,9 +340,9 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        long confirmed = requestClient.confirmedCount(event.getId());
+        long confirmed = eventDependencyFacade.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
-        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+        UserShortDto initiator = eventDependencyFacade.user(event.getInitiatorId());
         return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, List.of());
     }
 
@@ -483,14 +481,7 @@ public class EventServiceImpl implements EventService {
                 .unique(true) // уникальные просмотры по IP
                 .build();
 
-        List<ViewStatsDto> stats;
-        try {
-            stats = statsClient.get(params);
-        } catch (Exception ex) {
-            log.warn("Не удалось получить статистику просмотров, возвращаю 0 для всех событий: {}", ex.getMessage());
-            return idToUri.keySet().stream()
-                    .collect(Collectors.toMap(id -> id, id -> 0));
-        }
+        List<ViewStatsDto> stats = eventDependencyFacade.stats(params);
 
         // stats приходят с полями app, uri, hits
         Map<String, Integer> uriToHits = stats.stream()
@@ -530,7 +521,7 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        List<RequestCountDto> counts =requestClient.confirmedCounts(ids);
+        List<RequestCountDto> counts = eventDependencyFacade.confirmedCounts(ids);
         Map<Long, Long> result = new HashMap<>();
         for (RequestCountDto count : counts) {
             result.put(count.getEventId(), count.getCount());
@@ -549,7 +540,7 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        List<CommentEventDto> comments = commentClient.findPublishedByEventIds(ids);
+        List<CommentEventDto> comments = eventDependencyFacade.publishedComments(ids);
 
         return comments.stream()
                 .collect(Collectors.groupingBy(CommentEventDto::getEventId));
@@ -565,7 +556,7 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-        List<UserShortDto> users = userClient.getUserShortDtos(userIds);
+        List<UserShortDto> users = eventDependencyFacade.users(userIds);
 
         Map<Long, UserShortDto> result = new HashMap<>();
         for (UserShortDto user : users) {
