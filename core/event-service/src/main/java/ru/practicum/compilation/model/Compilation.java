@@ -8,7 +8,7 @@ import ru.practicum.event.model.Event;
 import java.util.Set;
 
 @Entity
-@Table(name = "event_compilations", schema = "public")
+@Table(name = "event_compilations")
 @Getter
 @Setter
 public class Compilation {

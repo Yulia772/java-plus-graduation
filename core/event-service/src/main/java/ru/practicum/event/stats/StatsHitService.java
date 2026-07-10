@@ -16,7 +16,7 @@ public class StatsHitService {
 
     private final StatsClient statsClient;
 
-    @Value("${evm.app-name:evm-main-service}")
+    @Value("${evm.app-name:evm-event-service}")
     private String appName;
 
     //отправляет hit в stats-service, если он не доступен, пишем предупрреждение и не даем приложению упасть

@@ -6,11 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.comment.client.CommentEventClient;
-import ru.practicum.comment.client.CommentUserClient;
 import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.comment.repository.CommentRepository;
+import ru.practicum.interactionapi.client.EventClient;
+import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.comment.*;
 import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.interactionapi.exception.BadRequestException;
@@ -33,8 +33,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
-    private final CommentUserClient userClient;
-    private final CommentEventClient eventClient;
+    private final UserClient userClient;
+    private final EventClient eventClient;
 
     @Override
     @Transactional

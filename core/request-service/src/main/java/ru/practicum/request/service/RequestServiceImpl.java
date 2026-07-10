@@ -4,13 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.interactionapi.client.EventClient;
+import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.event.State;
+import ru.practicum.interactionapi.dto.request.RequestEventInfo;
 import ru.practicum.interactionapi.exception.ConditionsNotMetException;
 import ru.practicum.interactionapi.exception.NotFoundException;
 import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
-import ru.practicum.request.client.RequestEventClient;
-import ru.practicum.request.client.RequestEventInfo;
-import ru.practicum.request.client.RequestUserClient;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
 import ru.practicum.interactionapi.dto.request.RequestStatus;
@@ -28,8 +28,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class RequestServiceImpl implements RequestService {
     private final RequestRepository reqRepository;
-    private final RequestUserClient userClient;
-    private final RequestEventClient eventClient;
+    private final UserClient userClient;
+    private final EventClient eventClient;
     private final RequestMapper requestMapper;
 
     /**
@@ -72,7 +72,7 @@ public class RequestServiceImpl implements RequestService {
         }
 
         // Проверка лимита участников
-        int confirmedCount = getConfirmedCount(eventId);
+        long confirmedCount = getConfirmedCount(eventId);
 
         if (event.partLimit() > 0 && event.partLimit() <= confirmedCount) {
             log.debug("Достигнут лимит участников: eventId={}, limit={}, confirmed={}",
@@ -158,7 +158,7 @@ public class RequestServiceImpl implements RequestService {
     /**
      * Получение количества подтвержденных запросов на событие
      */
-    private int getConfirmedCount(Long eventId) {
+    private long getConfirmedCount(Long eventId) {
         return reqRepository.confirmedCount(eventId);
     }
 

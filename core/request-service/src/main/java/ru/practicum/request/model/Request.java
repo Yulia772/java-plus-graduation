@@ -9,7 +9,7 @@ import ru.practicum.interactionapi.dto.request.RequestStatus;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "requests", schema = "public")
+@Table(name = "requests")
 @Getter
 @Setter
 public class Request {
@@ -21,10 +21,10 @@ public class Request {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime created;
 
-    @JoinColumn(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false)
     private Long eventId;
 
-    @JoinColumn(name = "requester_id", nullable = false)
+    @Column(name = "requester_id", nullable = false)
     private Long requesterId;
 
     @Column(name = "status")

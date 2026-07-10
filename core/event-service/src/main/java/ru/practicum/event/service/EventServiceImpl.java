@@ -11,9 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.StatsClient;
 import ru.practicum.category.model.Category;
 import ru.practicum.category.repository.CategoryRepository;
-import ru.practicum.event.client.EventCommentClient;
-import ru.practicum.event.client.EventRequestClient;
-import ru.practicum.event.client.EventUserClient;
+import ru.practicum.interactionapi.client.CommentClient;
+import ru.practicum.interactionapi.client.RequestClient;
+import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.dto.request.ViewStatsParamDto;
 import ru.practicum.dto.response.ViewStatsDto;
@@ -21,6 +21,8 @@ import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.QEvent;
 import ru.practicum.event.repository.EventRepository;
+import ru.practicum.interactionapi.dto.request.RequestCountDto;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 import ru.practicum.interactionapi.exception.BadRequestException;
 import ru.practicum.interactionapi.exception.ConflictException;
 import ru.practicum.interactionapi.exception.NotFoundException;
@@ -44,9 +46,9 @@ public class EventServiceImpl implements EventService {
     private final StatsClient statsClient;
     private final CategoryRepository categoryRepository;
 
-    private final EventRequestClient requestClient;
-    private final EventCommentClient commentClient;
-    private final EventUserClient userClient;
+    private final RequestClient requestClient;
+    private final CommentClient commentClient;
+    private final UserClient userClient;
 
     // PUBLIC
 
@@ -73,6 +75,7 @@ public class EventServiceImpl implements EventService {
         Map<Long, Integer> viewsMap = fetchViews(events);
 
         Map<Long, Long> confirmedMap = fetchConfirmedCounts(events);
+        Map<Long, UserShortDto> initiatorsMap = fetchInitiators(events);
 
         List<EventShortDto> result = new ArrayList<>();
 
@@ -85,7 +88,8 @@ public class EventServiceImpl implements EventService {
             }
 
             int views = viewsMap.getOrDefault(e.getId(), 0);
-            result.add(eventMapper.toEventShortDto(e, (int) confirmed, views));
+            UserShortDto initiator = initiatorsMap.get(e.getInitiatorId());
+            result.add(eventMapper.toEventShortDto(e, initiator, (int) confirmed, views));
         }
 
         // сортировка по просмотрам
@@ -109,9 +113,10 @@ public class EventServiceImpl implements EventService {
         long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentClient.findPublishedByEventId(event.getId());
+                commentClient.findPublishedByEventIds(List.of(event.getId()));
+        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
 
-        return eventMapper.toEventFullDto(event, (int) confirmed, views, comments);
+        return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, comments);
     }
 
     // ADMIN
@@ -129,13 +134,15 @@ public class EventServiceImpl implements EventService {
         Map<Long, Integer> viewsMap = fetchViews(events);
         Map<Long, Long> confirmedMap = fetchConfirmedCounts(events);
         Map<Long, List<CommentEventDto>> commentsMap = fetchComments(events);
+        Map<Long, UserShortDto> initiatorsMap = fetchInitiators(events);
 
         List<EventFullDto> result = new ArrayList<>();
         for (Event e : events) {
             long confirmed = confirmedMap.getOrDefault(e.getId(), 0L);
             int views = viewsMap.getOrDefault(e.getId(), 0);
             List<CommentEventDto> comments = commentsMap.getOrDefault(e.getId(), Collections.emptyList());
-            result.add(eventMapper.toEventFullDto(e, (int) confirmed, views, comments));
+            UserShortDto initiator = initiatorsMap.get(e.getInitiatorId());
+            result.add(eventMapper.toEventFullDto(e, initiator, (int) confirmed, views, comments));
         }
         return result;
     }
@@ -202,7 +209,8 @@ public class EventServiceImpl implements EventService {
 
         long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
-        return eventMapper.toEventFullDto(event, (int) confirmed, views, List.of());
+        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+        return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, List.of());
     }
 
     // PRIVATE (user)
@@ -212,7 +220,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto createEvent(Long userId, NewEventDto newEventDto) {
         log.info("EventService: user {} создает event {}", userId, newEventDto);
 
-        var initiator = userClient.getUserOrThrow(userId);
+        UserShortDto initiator = userClient.getUserShortDto(userId);
         var category = getCategoryOrThrow(newEventDto.getCategory().longValue());
 
         //проверка даты события при создании
@@ -223,7 +231,7 @@ public class EventServiceImpl implements EventService {
         }
 
         Event event = eventMapper.toEvent(newEventDto);
-        event.setInitiator(initiator);
+        event.setInitiatorId(userId);
         event.setCategory(category);
         event.setCreatedOn(LocalDateTime.now());
         event.setState(State.PENDING);
@@ -231,7 +239,7 @@ public class EventServiceImpl implements EventService {
 
         Event saved = eventRepository.save(event);
         // Новое событие ещё никто не смотрел
-        return eventMapper.toEventFullDto(saved, 0, 0, List.of());
+        return eventMapper.toEventFullDto(saved, initiator, 0, 0, List.of());
     }
 
     @Override
@@ -239,19 +247,21 @@ public class EventServiceImpl implements EventService {
         log.info("EventService: получаем события для user {}, pageable={}", userId, pageable);
 
         // фильтрация по инициатору через QueryDSL
-        BooleanExpression predicate = event.initiator.id.eq(userId);
+        BooleanExpression predicate = event.initiatorId.eq(userId);
         var page = eventRepository.findAll(predicate, pageable);
         List<Event> events = page.getContent();
 
         //один запрос за просмотрами и один за подтвержденными заявками
         Map<Long, Integer> viewsMap = fetchViews(events);
         Map<Long, Long> confirmedMap = fetchConfirmedCounts(events);
+        Map<Long, UserShortDto> initiatorsMap = fetchInitiators(events);
 
         List<EventShortDto> result = new ArrayList<>();
         for (Event e : events) {
             long confirmed = confirmedMap.getOrDefault(e.getId(), 0L);
             int views = viewsMap.getOrDefault(e.getId(), 0);
-            result.add(eventMapper.toEventShortDto(e, (int) confirmed, views));
+            UserShortDto initiator = initiatorsMap.get(e.getInitiatorId());
+            result.add(eventMapper.toEventShortDto(e, initiator, (int) confirmed, views));
         }
         return result;
     }
@@ -261,15 +271,16 @@ public class EventServiceImpl implements EventService {
         log.info("EventService: получаем event {} для user {}", eventId, userId);
         Event event = getEventOrThrow(eventId);
 
-        if (!event.getInitiator().getId().equals(userId)) {
+        if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
         long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
         List<CommentEventDto> comments =
-                commentClient.findPublishedByEventId(event.getId());
-        return eventMapper.toEventFullDto(event, (int) confirmed, views, comments);
+                commentClient.findPublishedByEventIds(List.of(event.getId()));
+        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+        return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, comments);
     }
 
     @Override
@@ -279,7 +290,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = getEventOrThrow(eventId);
 
-        if (!event.getInitiator().getId().equals(userId)) {
+        if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
@@ -333,7 +344,8 @@ public class EventServiceImpl implements EventService {
 
         long confirmed = requestClient.confirmedCount(event.getId());
         int views = fetchViewsForSingleEvent(event);
-        return eventMapper.toEventFullDto(event, (int) confirmed, views, List.of());
+        UserShortDto initiator = userClient.getUserShortDto(event.getInitiatorId());
+        return eventMapper.toEventFullDto(event, initiator, (int) confirmed, views, List.of());
     }
 
     @Override
@@ -342,7 +354,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = getEventOrThrow(eventId);
 
-        if (!event.getInitiator().getId().equals(userId)) {
+        if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
@@ -359,7 +371,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = getEventOrThrow(eventId);
 
-        if (!event.getInitiator().getId().equals(userId)) {
+        if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие с id=" + eventId + " для пользователя " + userId + " не найдено");
         }
 
@@ -411,7 +423,7 @@ public class EventServiceImpl implements EventService {
         BooleanExpression predicate = QEvent.event.isNotNull();
 
         if (params.getUsers() != null && !params.getUsers().isEmpty()) {
-            predicate = predicate.and(event.initiator.id.in(params.getUsers()));
+            predicate = predicate.and(event.initiatorId.in(params.getUsers()));
         }
 
         if (params.getStates() != null && !params.getStates().isEmpty()) {
@@ -518,7 +530,13 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return requestClient.confirmedCount(ids);
+        List<RequestCountDto> counts =requestClient.confirmedCounts(ids);
+        Map<Long, Long> result = new HashMap<>();
+        for (RequestCountDto count : counts) {
+            result.put(count.getEventId(), count.getCount());
+        }
+
+        return result;
     }
 
     private Map<Long, List<CommentEventDto>> fetchComments(List<Event> events) {
@@ -531,7 +549,29 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        return commentClient.findPublishedByEventIds(ids);
+        List<CommentEventDto> comments = commentClient.findPublishedByEventIds(ids);
+
+        return comments.stream()
+                .collect(Collectors.groupingBy(CommentEventDto::getEventId));
+    }
+
+    private Map<Long, UserShortDto> fetchInitiators(List<Event> events) {
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Long> userIds = events.stream()
+                .map(Event::getInitiatorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<UserShortDto> users = userClient.getUserShortDtos(userIds);
+
+        Map<Long, UserShortDto> result = new HashMap<>();
+        for (UserShortDto user : users) {
+            result.put(user.getId(), user);
+        }
+        return result;
     }
 
     private Event getEventOrThrow(Long id) {

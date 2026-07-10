@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface RequestRepositoryCustom {
-    int confirmedCount(Long eventId);
+    long confirmedCount(Long eventId);
 
     Map<Long, Long> confirmedCount(List<Long> eventIds);
 

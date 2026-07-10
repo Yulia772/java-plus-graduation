@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.event.mapper.EventMapper;
+import ru.practicum.interactionapi.client.UserClient;
 import ru.practicum.interactionapi.dto.compilation.CompilationDto;
 import ru.practicum.interactionapi.dto.compilation.NewCompilationDto;
 import ru.practicum.interactionapi.dto.compilation.UpdateCompilationRequest;
@@ -13,12 +15,12 @@ import ru.practicum.compilation.model.Compilation;
 import ru.practicum.compilation.repository.CompilationRepository;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.repository.EventRepository;
+import ru.practicum.interactionapi.dto.event.EventShortDto;
+import ru.practicum.interactionapi.dto.user.UserShortDto;
 import ru.practicum.interactionapi.exception.NotFoundException;
 import org.springframework.data.domain.Pageable;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -28,6 +30,8 @@ public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
+    private final EventMapper eventMapper;
+    private final UserClient userClient;
 
     @Override
     @Transactional
@@ -36,7 +40,7 @@ public class CompilationServiceImpl implements CompilationService {
         Set<Event> events = getEvents(dto.getEvents());
         Compilation entity = compilationMapper.toCompilation(dto, events);
         Compilation saved = compilationRepository.save(entity);
-        CompilationDto result = compilationMapper.toCompilationDto(saved);
+        CompilationDto result = buildCompilationDto(saved);
         log.info("CompilationService: компиляция сохранена: {}", result);
         return result;
     }
@@ -56,8 +60,8 @@ public class CompilationServiceImpl implements CompilationService {
         log.info("CompilationService: получен запрос на обновление компиляции с id {}.", compId);
         Compilation saved = getCompilationOrThrow(compId);
         updateFields(saved, dto);
-        CompilationDto result = compilationMapper.toCompilationDto(saved);
-        log.info("CompilationService: категория обновлена: {}", result);
+        CompilationDto result = buildCompilationDto(saved);
+        log.info("CompilationService: компиляция обновлена: {}", result);
         return result;
     }
 
@@ -70,7 +74,14 @@ public class CompilationServiceImpl implements CompilationService {
                 ? List.of()
                 : compilationRepository.findAllCompilationsWithEvents(pageIds.getContent());
 
-        List<CompilationDto> result = saved.stream().map(compilationMapper::toCompilationDto).toList();
+        Set<Event> allEvents = collectAllEvents(saved);
+        Map<Long, UserShortDto> initiatorsMap = fetchInitiators(allEvents);
+
+        List<CompilationDto> result = new ArrayList<>();
+        for (Compilation compilation : saved) {
+            CompilationDto dto = buildCompilationDtoWithKnownInitiators(compilation, initiatorsMap);
+            result.add(dto);
+        }
         log.info("CompilationService: выдана страница компиляций размером: {}, начиная с {}.",
                 saved.size(), pageable.getOffset());
         return result;
@@ -80,8 +91,8 @@ public class CompilationServiceImpl implements CompilationService {
     public CompilationDto getById(Long compId) {
         log.info("CompilationService: получен запрос на получение компиляции с id: {}.", compId);
         Compilation saved = getCompilationOrThrow(compId);
-        CompilationDto result = compilationMapper.toCompilationDto(saved);
-        log.info("CompilationService: категория выдана: {}", result);
+        CompilationDto result = buildCompilationDto(saved);
+        log.info("CompilationService: компиляция выдана: {}", result);
         return result;
     }
 
@@ -89,7 +100,7 @@ public class CompilationServiceImpl implements CompilationService {
         Set<Event> result = new HashSet<>();
 
         if (eventIds != null && !eventIds.isEmpty()) {
-            result.addAll(eventRepository.findAllWithCategoryAndInitiator(eventIds));
+            result.addAll(eventRepository.findAllWithCategory(eventIds));
 
             if (eventIds.size() > result.size()) {
                 throw new NotFoundException("В полученном списке событий есть не существующие.");
@@ -115,5 +126,68 @@ public class CompilationServiceImpl implements CompilationService {
     private Compilation getCompilationOrThrow(Long id) {
         return compilationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Компиляция с id=" + id + " не найдена"));
+    }
+
+    private Map<Long, UserShortDto> fetchInitiators(Collection<Event> events) {
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> userIds = events.stream()
+                .map(Event::getInitiatorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<UserShortDto> users = userClient.getUserShortDtos(userIds);
+
+        Map<Long, UserShortDto> result = new HashMap<>();
+        for (UserShortDto user : users) {
+            result.put(user.getId(), user);
+        }
+        return result;
+    }
+
+    private Set<Event> collectAllEvents(List<Compilation> compilations) {
+        if (compilations == null || compilations.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        Set<Event> allEvents = new HashSet<>();
+        for (Compilation compilation : compilations) {
+            if (compilation.getEvents() != null) {
+                allEvents.addAll(compilation.getEvents());
+            }
+        }
+        return allEvents;
+    }
+
+    private CompilationDto buildCompilationDtoWithKnownInitiators(Compilation compilation,
+                                                                  Map<Long, UserShortDto> initiatorsMap) {
+        CompilationDto dto = compilationMapper.toCompilationDto(compilation);
+
+        List<EventShortDto> eventDtos = new ArrayList<>();
+
+        if (compilation.getEvents() != null) {
+            for (Event event : compilation.getEvents()) {
+                UserShortDto initiator = initiatorsMap.get(event.getInitiatorId());
+
+                EventShortDto eventDto = eventMapper.toEventShortDto(
+                        event, initiator, 0, 0
+                );
+                eventDtos.add(eventDto);
+            }
+        }
+        eventDtos.sort(Comparator.comparing(EventShortDto::getId));
+        dto.setEvents(eventDtos);
+
+        return dto;
+    }
+
+    private CompilationDto buildCompilationDto(Compilation compilation) {
+        Set<Event> events = compilation.getEvents() == null
+                ? Collections.emptySet()
+                : compilation.getEvents();
+        Map<Long, UserShortDto> initiatorsMap = fetchInitiators(events);
+
+        return buildCompilationDtoWithKnownInitiators(compilation, initiatorsMap);
     }
 }

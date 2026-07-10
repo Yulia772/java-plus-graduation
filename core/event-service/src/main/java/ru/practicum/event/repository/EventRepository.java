@@ -14,7 +14,6 @@ public interface EventRepository extends JpaRepository<Event, Long>, QuerydslPre
 
     @Query("SELECT e FROM Event e " +
             "LEFT JOIN FETCH e.category " +
-            "LEFT JOIN FETCH e.initiator " +
             "WHERE e.id in :ids")
-    List<Event> findAllWithCategoryAndInitiator(@Param("ids") Set<Long> ids);
+    List<Event> findAllWithCategory(@Param("ids") Set<Long> ids);
 }

@@ -21,9 +21,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Глобальный обработчик исключений для main-service.
- */
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {

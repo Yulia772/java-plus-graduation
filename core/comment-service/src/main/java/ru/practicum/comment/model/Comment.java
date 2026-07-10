@@ -8,7 +8,7 @@ import ru.practicum.interactionapi.dto.event.State;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "event_comments", schema = "public")
+@Table(name = "event_comments")
 @Getter
 @Setter
 public class Comment {
@@ -22,10 +22,10 @@ public class Comment {
     @Column(name = "text", nullable = false)
     private String text;
 
-    @JoinColumn(name = "author_id", nullable = false)
+    @Column(name = "author_id", nullable = false)
     private Long authorId;
 
-    @JoinColumn(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false)
     private Long eventId;
 
     @Column(name = "state", nullable = false)

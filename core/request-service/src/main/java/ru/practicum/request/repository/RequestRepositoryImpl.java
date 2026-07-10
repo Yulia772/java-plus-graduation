@@ -24,7 +24,7 @@ public class RequestRepositoryImpl extends QuerydslRepositorySupport
     }
 
     @Override
-    public int confirmedCount(Long eventId) {
+    public long confirmedCount(Long eventId) {
         Long count = queryFactory
                 .select(request.count())
                 .from(request)

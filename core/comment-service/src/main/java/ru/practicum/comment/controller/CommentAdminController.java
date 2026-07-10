@@ -90,8 +90,8 @@ public class CommentAdminController {
         Sort sortBy = switch (sort) {
             case COMMENT_DATE -> Sort.by(Sort.Direction.ASC, "createdOn");
             case COMMENT_ID   -> Sort.by(Sort.Direction.ASC, "id");
-            case AUTHOR_ID    -> Sort.by(Sort.Direction.ASC, "author.id");
-            case EVENT_ID     -> Sort.by(Sort.Direction.ASC, "event.id");
+            case AUTHOR_ID    -> Sort.by(Sort.Direction.ASC, "authorId");
+            case EVENT_ID     -> Sort.by(Sort.Direction.ASC, "eventId");
         };
 
         return PageRequest.of(page, size, sortBy);

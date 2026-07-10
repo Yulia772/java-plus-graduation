@@ -5,12 +5,11 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.practicum.category.model.Category;
 import ru.practicum.interactionapi.dto.event.State;
-import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "events", schema = "public")
+@Table(name = "events")
 @Getter
 @Setter
 public class Event {
@@ -34,9 +33,8 @@ public class Event {
     @Column(name = "event_date", nullable = false)
     private LocalDateTime eventDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "initiator_id")
-    private User initiator;
+    @Column(name = "initiator_id", nullable = false)
+    private Long initiatorId;
 
     @Column(name = "loc_lat", nullable = false)
     private float locLat;

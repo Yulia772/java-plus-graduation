@@ -12,6 +12,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(source = "email", target = "email")
     @Mapping(source = "name", target = "name")
     User toUser(NewUserRequest dto);
