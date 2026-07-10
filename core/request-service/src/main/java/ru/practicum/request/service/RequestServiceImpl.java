@@ -82,10 +82,10 @@ public class RequestServiceImpl implements RequestService {
 
         Request request = requestMapper.toRequest(userId, eventId);
 
-        //  Автоматическое подтверждение если не требуется модерация или лимит = 0
-        //    Если лимит = 0 - безлимитное участие, подтверждаем сразу
+        //  Автоматическое подтверждение только если отключена модерация
+        //    Если лимит = 0 - означает отсутствие лимита, но не означает автоматическое подтверждение заявки
         //    Если requestModeration = false - модерация не требуется, подтверждаем сразу
-        if (!event.requestModeration() || event.partLimit() == 0) {
+        if (Boolean.FALSE.equals(event.requestModeration())) {
             log.debug("Модерация не требуется, статус CONFIRMED: request для eventId={}", eventId);
             request.setStatus(RequestStatus.CONFIRMED);
         }
