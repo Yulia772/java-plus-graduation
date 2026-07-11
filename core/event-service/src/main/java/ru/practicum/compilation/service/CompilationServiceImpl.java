@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.event.mapper.EventMapper;
-import ru.practicum.interactionapi.client.UserClient;
+import ru.practicum.interactionapi.client.api.UserInternalApi;
 import ru.practicum.interactionapi.dto.compilation.CompilationDto;
 import ru.practicum.interactionapi.dto.compilation.NewCompilationDto;
 import ru.practicum.interactionapi.dto.compilation.UpdateCompilationRequest;
@@ -31,7 +31,7 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
     private final EventMapper eventMapper;
-    private final UserClient userClient;
+    private final UserInternalApi userClient;
 
     @Override
     @Transactional

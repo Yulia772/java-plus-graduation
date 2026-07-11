@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.comment.repository.CommentRepository;
-import ru.practicum.interactionapi.client.EventClient;
-import ru.practicum.interactionapi.client.UserClient;
+import ru.practicum.interactionapi.client.api.EventInternalApi;
+import ru.practicum.interactionapi.client.api.UserInternalApi;
 import ru.practicum.interactionapi.dto.comment.*;
 import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.interactionapi.dto.user.UserShortDto;
@@ -33,8 +33,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
-    private final UserClient userClient;
-    private final EventClient eventClient;
+    private final UserInternalApi userClient;
+    private final EventInternalApi eventClient;
 
     @Override
     @Transactional

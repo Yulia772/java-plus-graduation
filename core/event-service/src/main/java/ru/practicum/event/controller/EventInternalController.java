@@ -3,12 +3,12 @@ package ru.practicum.event.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.event.service.EventInternalService;
-import ru.practicum.interactionapi.client.EventClient;
+import ru.practicum.interactionapi.client.api.EventInternalApi;
 import ru.practicum.interactionapi.dto.request.RequestEventInfo;
 
 @RestController
 @RequiredArgsConstructor
-public class EventInternalController implements EventClient {
+public class EventInternalController implements EventInternalApi {
 
     private final EventInternalService eventInternalService;
 

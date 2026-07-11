@@ -10,10 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import ru.practicum.interactionapi.exception.BadRequestException;
-import ru.practicum.interactionapi.exception.ConditionsNotMetException;
-import ru.practicum.interactionapi.exception.ConflictException;
-import ru.practicum.interactionapi.exception.NotFoundException;
+import ru.practicum.interactionapi.exception.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -174,6 +171,20 @@ public class ErrorHandler {
                 ex.getMessage(),
                 "Искомый объект не был найден.",
                 HttpStatus.NOT_FOUND,
+                LocalDateTime.now(),
+                List.of()
+        );
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiError handleServiceUnavailable(ServiceUnavailableException ex) {
+        log.warn("Удаленный сервис недоступен: {}", ex.getMessage());
+
+        return new ApiError(
+                ex.getMessage(),
+                "Service unavailable",
+                HttpStatus.SERVICE_UNAVAILABLE,
                 LocalDateTime.now(),
                 List.of()
         );

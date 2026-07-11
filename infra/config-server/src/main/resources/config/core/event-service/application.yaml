@@ -22,6 +22,11 @@ spring:
     init:
       mode: always
 
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
 eureka:
   instance:
     prefer-ip-address: true
@@ -38,25 +43,6 @@ logging:
     org.hibernate.SQL: DEBUG
 
 resilience4j:
-  retry:
-    configs:
-      default:
-        max-attempts: 3
-        wait-duration: 300ms
-
-    instances:
-      requestService:
-        base-config: default
-
-      commentService:
-        base-config: default
-
-      userService:
-        base-config: default
-
-      statsService:
-        base-config: default
-
   circuitbreaker:
     configs:
       default:
@@ -68,15 +54,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
 
-    instances:
-      requestService:
-        base-config: default
-
-      commentService:
-        base-config: default
-
-      userService:
-        base-config: default
-
-      statsService:
-        base-config: default
+        ignore-exceptions:
+          - ru.practicum.interactionapi.exception.BadRequestException
+          - ru.practicum.interactionapi.exception.NotFoundException
+          - ru.practicum.interactionapi.exception.ConflictException

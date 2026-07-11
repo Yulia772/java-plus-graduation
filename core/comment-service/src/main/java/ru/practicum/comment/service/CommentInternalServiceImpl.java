@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.comment.repository.CommentRepository;
-import ru.practicum.interactionapi.client.UserClient;
+import ru.practicum.interactionapi.client.api.UserInternalApi;
 import ru.practicum.interactionapi.dto.comment.CommentEventDto;
 import ru.practicum.interactionapi.dto.user.UserShortDto;
 
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class CommentInternalServiceImpl implements CommentInternalService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
-    private final UserClient userClient;
+    private final UserInternalApi userClient;
 
     @Override
     public List<CommentEventDto> findPublishedByEventIds(List<Long> eventIds) {

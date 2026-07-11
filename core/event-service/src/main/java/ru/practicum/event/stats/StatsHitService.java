@@ -1,7 +1,5 @@
 package ru.practicum.event.stats;
 
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,15 +16,10 @@ public class StatsHitService {
 
     private final StatsClient statsClient;
 
-    @Value("${ewm.app-name:ewm-event-service}")
+    @Value("${ewm.app-name:ewm-main-service}")
     private String appName;
 
     //отправляет hit в stats-service, если он не доступен, пишем предупрреждение и не даем приложению упасть
-    @CircuitBreaker(name = "statsService")
-    @Retry(
-            name = "statsService",
-            fallbackMethod = "sendHitFallback"
-    )
     public void sendHit(String uri, String ip) {
         EndPointHitDtoNew hitDto = EndPointHitDtoNew.builder()
                 .app(appName)
@@ -34,9 +27,10 @@ public class StatsHitService {
                 .ip(ip)
                 .timestamp(LocalDateTime.now())
                 .build();
-        statsClient.hit(hitDto);
-    }
-    private void sendHitFallback(String uri, String ip, Throwable exception) {
-        log.warn("stats-service недоступен. Хит для uri={} и ip={} не сохранен: {}", uri, ip, exception.getMessage());
+        try {
+            statsClient.hit(hitDto);
+        } catch (Exception e) {
+            log.warn("Не удалось отправить hit в stats-service: {}", e.getMessage());
+        }
     }
 }

@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.interactionapi.client.EventClient;
-import ru.practicum.interactionapi.client.UserClient;
+import ru.practicum.interactionapi.client.api.EventInternalApi;
+import ru.practicum.interactionapi.client.api.UserInternalApi;
 import ru.practicum.interactionapi.dto.event.State;
 import ru.practicum.interactionapi.dto.request.RequestEventInfo;
 import ru.practicum.interactionapi.exception.ConditionsNotMetException;
@@ -28,8 +28,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class RequestServiceImpl implements RequestService {
     private final RequestRepository reqRepository;
-    private final UserClient userClient;
-    private final EventClient eventClient;
+    private final UserInternalApi userClient;
+    private final EventInternalApi eventClient;
     private final RequestMapper requestMapper;
 
     /**

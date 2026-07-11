@@ -1,37 +1,14 @@
 package ru.practicum.interactionapi.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import ru.practicum.interactionapi.client.api.RequestInternalApi;
 import ru.practicum.interactionapi.client.config.CommonFeignConfig;
-import ru.practicum.interactionapi.dto.event.EventRequestStatusUpdateRequest;
-import ru.practicum.interactionapi.dto.event.EventRequestStatusUpdateResult;
-import ru.practicum.interactionapi.dto.request.ParticipationRequestDto;
-import ru.practicum.interactionapi.dto.request.RequestCountDto;
-
-import java.util.List;
+import ru.practicum.interactionapi.client.fallback.RequestClientFallbackFactory;
 
 @FeignClient(
         name = "request-service",
-        contextId = "requestClient",
-        configuration = CommonFeignConfig.class
+        configuration = CommonFeignConfig.class,
+        fallbackFactory = RequestClientFallbackFactory.class
 )
-public interface RequestClient {
-
-    @GetMapping("/internal/requests/events/{eventId}")
-    List<ParticipationRequestDto> findAllByEventId(@PathVariable("eventId") Long eventId);
-
-    @GetMapping("/internal/requests/events/{eventId}/confirmed-count")
-    Long confirmedCount(@PathVariable("eventId") Long eventId);
-
-    @GetMapping("/internal/requests/confirmed-counts")
-    List<RequestCountDto> confirmedCounts(@RequestParam("eventIds") List<Long> eventIds);
-
-    @PostMapping("/internal/requests/events/{eventId}/status")
-    EventRequestStatusUpdateResult updateRequestsStatus(
-            @PathVariable("eventId") Long eventId,
-            @RequestParam("participantLimit") Integer participantLimit,
-            @RequestBody EventRequestStatusUpdateRequest req
-    );
-
-
+public interface RequestClient extends RequestInternalApi {
 }

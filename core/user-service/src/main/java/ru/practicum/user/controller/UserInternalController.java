@@ -2,7 +2,7 @@ package ru.practicum.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.interactionapi.client.UserClient;
+import ru.practicum.interactionapi.client.api.UserInternalApi;
 import ru.practicum.interactionapi.dto.user.UserShortDto;
 import ru.practicum.user.service.UserInternalService;
 
@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-public class UserInternalController implements UserClient {
+public class UserInternalController implements UserInternalApi {
 
     private final UserInternalService userInternalService;
 
