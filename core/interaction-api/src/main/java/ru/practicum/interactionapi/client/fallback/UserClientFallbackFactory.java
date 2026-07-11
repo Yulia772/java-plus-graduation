@@ -1,17 +1,19 @@
 package ru.practicum.interactionapi.client.fallback;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 import ru.practicum.interactionapi.client.UserClient;
-import ru.practicum.interactionapi.dto.user.UserShortDto;
-
-import java.util.List;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class UserClientFallbackFactory
         implements FallbackFactory<UserClient> {
+
+    private final ObjectProvider<UserClientFallback> fallbackProvider;
 
     @Override
     public UserClient create(Throwable cause) {
@@ -22,23 +24,7 @@ public class UserClientFallbackFactory
                 "user-service"
         );
 
-        return new UserClient() {
-
-            @Override
-            public void checkUserExists(Long userId) {
-                throw exception;
-            }
-
-            @Override
-            public UserShortDto getUserShortDto(Long userId) {
-                throw exception;
-            }
-
-            @Override
-            public List<UserShortDto> getUserShortDtos(List<Long> ids) {
-                throw exception;
-            }
-        };
+        return fallbackProvider.getObject(exception);
     }
 }
 

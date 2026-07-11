@@ -1,17 +1,19 @@
 package ru.practicum.interactionapi.client.fallback;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 import ru.practicum.interactionapi.client.CommentClient;
-import ru.practicum.interactionapi.exception.ServiceUnavailableException;
-
-import java.util.List;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class CommentClientFallbackFactory
         implements FallbackFactory<CommentClient> {
+
+    private final ObjectProvider<CommentClientFallback> fallbackProvider;
 
     @Override
     public CommentClient create(Throwable cause) {
@@ -22,18 +24,6 @@ public class CommentClientFallbackFactory
                 "comment-service"
         );
 
-        return eventIds -> {
-            if (exception instanceof ServiceUnavailableException) {
-                log.warn(
-                        "Comment-service недоступен. " +
-                                "Возвращаем события без комментариев, eventIds={}",
-                        eventIds
-                );
-
-                return List.of();
-            }
-
-            throw exception;
-        };
+        return fallbackProvider.getObject(exception);
     }
 }
