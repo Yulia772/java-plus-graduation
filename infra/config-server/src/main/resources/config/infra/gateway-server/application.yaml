@@ -6,10 +6,22 @@ spring:
           enabled: true
 
       routes:
-        - id: main_service_route
-          uri: lb://main-service
+        - id: user_service_route
+          uri: lb://user-service
           predicates:
-            - Path=/admin/**,/users/**,/events/**,/categories/**,/compilations/**
+            - Path=/admin/users/**
+        - id: comment_service_route
+          uri: lb://comment-service
+          predicates:
+            - Path=/users/*/comments,/users/*/comments/**,/admin/comments,/admin/comments/**
+        - id: request_service_route
+          uri: lb://request-service
+          predicates:
+            - Path=/users/*/requests,/users/*/requests/**
+        - id: event_service_route
+          uri: lb://event-service
+          predicates:
+            - Path=/events,/events/**,/admin/events/**,/users/*/events,/users/*/events/**,/compilations,/compilations/**,/admin/compilations,/admin/compilations/**,/categories,/categories/**,/admin/categories,/admin/categories/**
         - id: stats_server_route
           uri: lb://stats-server
           predicates:

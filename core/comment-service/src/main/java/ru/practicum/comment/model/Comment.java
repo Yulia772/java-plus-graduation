@@ -1,0 +1,34 @@
+package ru.practicum.comment.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import ru.practicum.interactionapi.dto.event.State;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "event_comments")
+@Getter
+@Setter
+public class Comment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "created_on", nullable = false)
+    private LocalDateTime createdOn;
+
+    @Column(name = "text", nullable = false)
+    private String text;
+
+    @Column(name = "author_id", nullable = false)
+    private Long authorId;
+
+    @Column(name = "event_id", nullable = false)
+    private Long eventId;
+
+    @Column(name = "state", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private State state;
+}

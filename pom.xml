@@ -28,6 +28,7 @@
 		<postgresql.version>42.6.0</postgresql.version>
 		<h2.version>2.2.224</h2.version>
 		<jakarta-persistence.version>3.1.0</jakarta-persistence.version>
+		<resilience4j.version>2.2.0</resilience4j.version>
     </properties>
 
     <modules>
@@ -56,6 +57,31 @@
                 <artifactId>stats-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>interaction-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>user-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>comment-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>request-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>event-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 
             <!-- MapStruct -->
             <dependency>
