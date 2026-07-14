@@ -17,7 +17,7 @@ protocol StatsAvroProtocol {
     record EventSimilarityAvro {
         long eventA;
         long eventB;
-        double scope;
+        double score;
         timestamp_ms timestamp;
     }
 }
