@@ -20,6 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok.version>1.18.34</lombok.version>
 		<spring-cloud.version>2023.0.3</spring-cloud.version>
@@ -29,6 +30,17 @@
 		<h2.version>2.2.224</h2.version>
 		<jakarta-persistence.version>3.1.0</jakarta-persistence.version>
 		<resilience4j.version>2.2.0</resilience4j.version>
+
+		<!-- Kafka, Avro, Protobuf, gRPC -->
+		<avro.version>1.11.3</avro.version>
+		<kafka-clients.version>3.6.1</kafka-clients.version>
+		<protobuf.version>3.23.4</protobuf.version>
+		<grpc.version>1.63.0</grpc.version>
+		<grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
+
+		<!-- Plugins -->
+		<avro-maven-plugin.version>${avro.version}</avro-maven-plugin.version>
+		<protobuf-plugin.version>2.4.0</protobuf-plugin.version>
     </properties>
 
     <modules>
@@ -80,6 +92,16 @@
 			<dependency>
 				<groupId>ru.practicum</groupId>
 				<artifactId>event-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>avro-schemas</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ru.practicum</groupId>
+				<artifactId>proto-schemas</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -147,6 +169,44 @@
                 <artifactId>jakarta.persistence-api</artifactId>
                 <version>${jakarta-persistence.version}</version>
             </dependency>
+
+			<!-- Avro и Kafka -->
+			<dependency>
+				<groupId>org.apache.avro</groupId>
+				<artifactId>avro</artifactId>
+				<version>${avro.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.kafka</groupId>
+				<artifactId>kafka-clients</artifactId>
+				<version>${kafka-clients.version}</version>
+			</dependency>
+
+			<!-- gRPC -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-stub</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-protobuf</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>net.devh</groupId>
+				<artifactId>grpc-spring-boot-starter</artifactId>
+				<version>${grpc-spring-boot-starter.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>net.devh</groupId>
+				<artifactId>grpc-server-spring-boot-starter</artifactId>
+				<version>${grpc-spring-boot-starter.version}</version>
+			</dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -297,6 +357,16 @@
 							</goals>
 						</execution>
 					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.avro</groupId>
+					<artifactId>avro-maven-plugin</artifactId>
+					<version>${avro-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>io.github.ascopes</groupId>
+					<artifactId>protobuf-maven-plugin</artifactId>
+					<version>${protobuf-plugin.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
