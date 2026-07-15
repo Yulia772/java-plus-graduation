@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: stat
       POSTGRES_DB: stat
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s
@@ -57,6 +57,22 @@ services:
       POSTGRES_DB: main
     ports:
       - "6432:5432"
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  analyzer-db:
+    image: postgres:16.1
+    container_name: analyzer-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ewm_analyzer
+    ports:
+      - "5432:5432"
     healthcheck:
       test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s

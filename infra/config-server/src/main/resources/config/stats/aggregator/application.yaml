@@ -2,17 +2,6 @@ server:
   port: 0
 
 spring:
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: aggregator
-      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
-      value-deserializer: ru.practicum.aggregator.serialization.UserActionAvroDeserializer
-      auto-offset-reset: earliest
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.LongSerializer
-      value-serializer: stats.avro.serialization.AvroSerializer
-
   application:
     name: aggregator
 
@@ -27,7 +16,9 @@ management:
 
 aggregator:
   kafka:
-    bootstrap-servers: ${spring.kafka.bootstrap-servers}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: aggregator
     topic:
       user-actions: stats.user-actions.v1
       events-similarity: stats.events-similarity.v1

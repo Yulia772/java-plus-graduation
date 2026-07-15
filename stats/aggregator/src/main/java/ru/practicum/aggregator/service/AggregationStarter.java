@@ -25,7 +25,6 @@ import java.util.Properties;
 @RequiredArgsConstructor
 public class AggregationStarter {
     private static final Duration CONSUME_ATTEMPT_TIMEOUT = Duration.ofMillis(1000);
-    private static final String CONSUMER_GROUP_ID = "aggregator";
 
     private final AggregatorService aggregatorService;
     private final AggregatorKafkaConfig kafkaConfig;
@@ -99,7 +98,7 @@ public class AggregationStarter {
     private Properties getConsumerProperties() {
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.getBootstrapServers());
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP_ID);
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaConfig.getConsumer().getGroupId());
 
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                 LongDeserializer.class.getName());

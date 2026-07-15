@@ -1,4 +1,4 @@
-package ru.practicum.aggregator.config;
+package ru.practicum.analyzer.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
-@ConfigurationProperties("aggregator.kafka")
-public class AggregatorKafkaConfig {
+@ConfigurationProperties("analyzer.kafka")
+public class AnalyzerKafkaConfig {
 
     private String bootstrapServers;
     private Consumer consumer;
