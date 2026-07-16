@@ -9,11 +9,15 @@ import ru.practicum.analyzer.model.UserInteraction;
 import ru.practicum.analyzer.repository.EventSimilarityRepository;
 import ru.practicum.analyzer.repository.UserInteractionRepository;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
+
+    private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 
     private final UserInteractionRepository userInteractionRepository;
     private final EventSimilarityRepository eventSimilarityRepository;
@@ -30,28 +34,28 @@ public class RecommendationServiceImpl implements RecommendationService {
             return List.of();
         }
 
-        Map<Long, Double> userWeights = new HashMap<>();
+        Map<Long, BigDecimal> userWeights = new HashMap<>();
         Set<Long> userEventIds = new HashSet<>();
 
         for (UserInteraction interaction : userInteractions) {
             Long eventId = interaction.getId().getEventId();
 
             userEventIds.add(eventId);
-            userWeights.put(eventId, interaction.getWeight());
+            userWeights.put(eventId, BigDecimal.valueOf(interaction.getWeight()));
         }
 
         List<EventSimilarity> similarities = eventSimilarityRepository.findAllByEventIds(userEventIds);
 
-        Map<Long, Double> numeratorByEvent = new HashMap<>();
-        Map<Long, Double> denominatorByEvent = new HashMap<>();
+        Map<Long, BigDecimal> numeratorByEvent = new HashMap<>();
+        Map<Long, BigDecimal> denominatorByEvent = new HashMap<>();
 
         for (EventSimilarity similarity : similarities) {
             Long eventA = similarity.getId().getEventA();
             Long eventB = similarity.getId().getEventB();
-            Double similarityScore = similarity.getScore();
+            BigDecimal similarityScore = BigDecimal.valueOf(similarity.getScore());
 
             Long candidateEventId = null;
-            Double userWeight = null;
+            BigDecimal userWeight = null;
 
             if (userWeights.containsKey(eventA) && !userEventIds.contains(eventB)) {
                 candidateEventId = eventB;
@@ -63,32 +67,35 @@ public class RecommendationServiceImpl implements RecommendationService {
                 userWeight = userWeights.get(eventB);
             }
 
-            if (candidateEventId == null || userWeight == null || similarityScore == 0.0) {
+            if (candidateEventId == null || userWeight == null || similarityScore.compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
 
+            BigDecimal numeratorDelta = similarityScore.multiply(userWeight, MATH_CONTEXT);
+
             numeratorByEvent.merge(
                     candidateEventId,
-                    similarityScore * userWeight,
-                    Double::sum
+                    numeratorDelta,
+                    (oldValue, newValue) -> oldValue.add(newValue, MATH_CONTEXT)
             );
             denominatorByEvent.merge(
                     candidateEventId,
                     similarityScore,
-                    Double::sum
+                    (oldValue, newValue) -> oldValue.add(newValue, MATH_CONTEXT)
             );
         }
 
         List<EventScore> recommendations = new ArrayList<>();
         for (Long eventId : numeratorByEvent.keySet()) {
-            Double numerator = numeratorByEvent.get(eventId);
-            Double denominator = denominatorByEvent.get(eventId);
+            BigDecimal numerator = numeratorByEvent.get(eventId);
+            BigDecimal denominator = denominatorByEvent.get(eventId);
 
-            if (denominator == null || denominator == 0.0) {
+            if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
 
-            recommendations.add(new EventScore(eventId, numerator / denominator));
+            BigDecimal score = numerator.divide(denominator, MATH_CONTEXT);
+            recommendations.add(new EventScore(eventId, score.doubleValue()));
         }
         return sortAndLimit(recommendations, maxResults);
     }
@@ -137,25 +144,26 @@ public class RecommendationServiceImpl implements RecommendationService {
         List<Long> uniqueEventIds = new ArrayList<>(new LinkedHashSet<>(eventIds));
         List<UserInteraction> interactions = userInteractionRepository.findAllByEventIds(uniqueEventIds);
 
-        Map<Long, Double> scoreByEventId = new HashMap<>();
+        Map<Long, BigDecimal> scoreByEventId = new HashMap<>();
 
         for (UserInteraction interaction : interactions) {
             Long eventId = interaction.getId().getEventId();
+            BigDecimal weight = BigDecimal.valueOf(interaction.getWeight());
 
             scoreByEventId.merge(
                     eventId,
-                    interaction.getWeight(),
-                    Double::sum
+                    weight,
+                    (oldValue, newValue) -> oldValue.add(newValue, MATH_CONTEXT)
             );
         }
 
         List<EventScore> result = new ArrayList<>();
 
         for (Long eventId : uniqueEventIds) {
-            Double score = scoreByEventId.get(eventId);
+            BigDecimal score = scoreByEventId.get(eventId);
 
             if (score != null) {
-                result.add(new EventScore(eventId, score));
+                result.add(new EventScore(eventId, score.doubleValue()));
             }
         }
         return result;

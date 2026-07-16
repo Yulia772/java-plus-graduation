@@ -6,6 +6,8 @@ import ru.practicum.ewm.stats.avro.ActionTypeAvro;
 import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,30 +16,36 @@ import java.util.Map;
 @Slf4j
 @Service
 public class AggregatorService {
+
+    private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
+    private static final BigDecimal VIEW_WEIGHT = BigDecimal.valueOf(0.4);
+    private static final BigDecimal REGISTER_WEIGHT = BigDecimal.valueOf(0.8);
+    private static final BigDecimal LIKE_WEIGHT = BigDecimal.valueOf(1.0);
+
     //матрица максимальных весов: eventId->userId->maxWeight
-    private final Map<Long, Map<Long, Double>> eventUserWeights = new HashMap<>();
+    private final Map<Long, Map<Long, BigDecimal>> eventUserWeights = new HashMap<>();
     //Сумма весов по каждому мероприятию: eventId->sumWeight
-    private final Map<Long, Double> eventWeightSums = new HashMap<>();
+    private final Map<Long, BigDecimal> eventWeightSums = new HashMap<>();
     //Сумма минимальных весов по паре мероприятий: min(eventA, eventB)->max(eventA, eventB)->Smin
-    private final Map<Long, Map<Long, Double>> minWeightsSum = new HashMap<>();
+    private final Map<Long, Map<Long, BigDecimal>> minWeightsSum = new HashMap<>();
 
     public synchronized List<EventSimilarityAvro> process(UserActionAvro action) {
         long userId = action.getUserId();
         long eventId = action.getEventId();
-        double newWeight = getWeight(action.getActionType());
+        BigDecimal newWeight = getWeight(action.getActionType());
 
-        Map<Long, Double> userWeights = eventUserWeights.computeIfAbsent(eventId, id -> new HashMap<>());
-        double oldWeight = userWeights.getOrDefault(userId, 0.0);
+        Map<Long, BigDecimal> userWeights = eventUserWeights.computeIfAbsent(eventId, id -> new HashMap<>());
+        BigDecimal oldWeight = userWeights.getOrDefault(userId, BigDecimal.ZERO);
 
-        if (newWeight <= oldWeight) {
+        if (newWeight.compareTo(oldWeight) <= 0) {
             log.info("Вес не увеличился, пересчет не нужен: userId={}, eventId={}, oldWeight={}, newWeight={}",
                     userId, eventId, oldWeight, newWeight);
             return List.of();
         }
-        double weightDelta = newWeight - oldWeight;
+        BigDecimal weightDelta = newWeight.subtract(oldWeight, MATH_CONTEXT);
 
         userWeights.put(userId, newWeight);
-        eventWeightSums.merge(eventId, weightDelta, Double::sum);
+        eventWeightSums.merge(eventId, weightDelta, (oldSum, delta) -> oldSum.add(delta, MATH_CONTEXT));
 
         List<EventSimilarityAvro> similarities = new ArrayList<>();
 
@@ -66,37 +74,45 @@ public class AggregatorService {
             long eventId,
             long otherEventId,
             long userId,
-            double oldWeight,
-            double newWeight,
+            BigDecimal oldWeight,
+            BigDecimal newWeight,
             UserActionAvro action
     ) {
-        double otherWeight = eventUserWeights
+        BigDecimal otherWeight = eventUserWeights
                 .getOrDefault(otherEventId, Map.of())
-                .getOrDefault(userId, 0.0);
-        if (otherWeight == 0.0) {
+                .getOrDefault(userId, BigDecimal.ZERO);
+        if (otherWeight.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        double oldMin = Math.min(oldWeight, otherWeight);
-        double newMin = Math.min(newWeight, otherWeight);
-        double minDelta = newMin - oldMin;
+        BigDecimal oldMin = min(oldWeight, otherWeight);
+        BigDecimal newMin = min(newWeight, otherWeight);
+        BigDecimal minDelta = newMin.subtract(oldMin, MATH_CONTEXT);
 
-        double newMinSum = getMinWeightSum(eventId, otherEventId) + minDelta;
+        BigDecimal newMinSum = getMinWeightSum(eventId, otherEventId).add(minDelta, MATH_CONTEXT);
 
-        if (minDelta != 0.0) {
+        if (minDelta.compareTo(BigDecimal.ZERO) != 0) {
             putMinWeightSum(eventId, otherEventId, newMinSum);
         }
-        if (newMinSum == 0.0) {
+        if (newMinSum.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
 
-        double eventSum = eventWeightSums.getOrDefault(eventId, 0.0);
-        double otherEventSum = eventWeightSums.getOrDefault(otherEventId, 0.0);
+        BigDecimal eventSum = eventWeightSums.getOrDefault(eventId, BigDecimal.ZERO);
+        BigDecimal otherEventSum = eventWeightSums.getOrDefault(otherEventId, BigDecimal.ZERO);
 
-        if (eventSum == 0.0 || otherEventSum == 0.0) {
+        if (eventSum.compareTo(BigDecimal.ZERO) == 0 || otherEventSum.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
 
-        double score = newMinSum / Math.sqrt(eventSum * otherEventSum);
+        BigDecimal denominator = eventSum
+                .multiply(otherEventSum, MATH_CONTEXT)
+                .sqrt(MATH_CONTEXT);
+
+        if (denominator.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+
+        BigDecimal score = newMinSum.divide(denominator, MATH_CONTEXT);
 
         long first = Math.min(eventId, otherEventId);
         long second = Math.max(eventId, otherEventId);
@@ -106,34 +122,41 @@ public class AggregatorService {
         return EventSimilarityAvro.newBuilder()
                 .setEventA(first)
                 .setEventB(second)
-                .setScore(score)
+                .setScore(score.doubleValue())
                 .setTimestamp(action.getTimestamp())
                 .build();
     }
 
-    private double getWeight(ActionTypeAvro actionType) {
+    private BigDecimal getWeight(ActionTypeAvro actionType) {
         return switch (actionType) {
-            case VIEW -> 0.4;
-            case REGISTER -> 0.8;
-            case LIKE -> 1.0;
+            case VIEW -> VIEW_WEIGHT;
+            case REGISTER -> REGISTER_WEIGHT;
+            case LIKE -> LIKE_WEIGHT;
         };
     }
 
-    private double getMinWeightSum(long eventA, long eventB) {
+    private BigDecimal getMinWeightSum(long eventA, long eventB) {
         long first = Math.min(eventA, eventB);
         long second = Math.max(eventA, eventB);
 
         return minWeightsSum
                 .getOrDefault(first, Map.of())
-                .getOrDefault(second, 0.0);
+                .getOrDefault(second, BigDecimal.ZERO);
     }
 
-    private void putMinWeightSum(long eventA, long eventB, double sum) {
+    private void putMinWeightSum(long eventA, long eventB, BigDecimal sum) {
         long first = Math.min(eventA, eventB);
         long second = Math.max(eventA, eventB);
 
         minWeightsSum
                 .computeIfAbsent(first, id -> new HashMap<>())
                 .put(second, sum);
+    }
+
+    private BigDecimal min(BigDecimal first, BigDecimal second) {
+        if (first.compareTo(second) <= 0) {
+            return first;
+        }
+        return second;
     }
 }
